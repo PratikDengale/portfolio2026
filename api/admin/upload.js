@@ -1,29 +1,60 @@
-import { handleUpload } from '@vercel/blob/client'
+import { issueSignedToken } from '@vercel/blob'
+import { handleUpload, handleUploadPresigned } from '@vercel/blob/client'
 import { LOGO_TYPES, MAX_UPLOAD_BYTES, VIDEO_TYPES } from '../../shared/mediaRules.js'
 import { denyUnlessAdmin } from '../_lib/auth.js'
 
+const rules = {
+  allowedContentTypes: [...VIDEO_TYPES, ...LOGO_TYPES],
+  maximumSizeInBytes: MAX_UPLOAD_BYTES,
+}
+
+function checkPath(pathname) {
+  if (typeof pathname !== 'string' || !pathname.startsWith('media/')) {
+    throw new Error('Invalid upload path.')
+  }
+}
+
 // Files go straight from the browser to the Blob store (functions can't accept
 // large request bodies). This route only hands a signed-in admin a short-lived
-// upload token restricted to media files under media/.
+// permission to upload one media file under media/. Which kind depends on how
+// the store is connected (see uploadMode in _lib/store.js):
+//   - with a read-write token: a client token
+//   - without one (OIDC): a presigned upload URL
 export async function POST(request) {
   const denied = await denyUnlessAdmin(request)
   if (denied) return denied
   try {
+    const body = await request.json()
+
+    if (body?.type === 'blob.generate-presigned-url') {
+      const result = await handleUploadPresigned({
+        request,
+        body,
+        // Only used to verify upload-completed callbacks, which we don't use.
+        webhookPublicKey: process.env.BLOB_WEBHOOK_PUBLIC_KEY ?? 'unused',
+        getSignedToken: async (pathname) => {
+          checkPath(pathname)
+          return {
+            token: await issueSignedToken({ pathname, operations: ['put'], ...rules }),
+            urlOptions: { ...rules, addRandomSuffix: true },
+          }
+        },
+      })
+      return Response.json(result)
+    }
+
+    if (body?.type !== 'blob.generate-client-token') throw new Error('Unsupported upload request.')
     const result = await handleUpload({
       request,
-      body: await request.json(),
+      body,
       onBeforeGenerateToken: async (pathname) => {
-        if (!pathname.startsWith('media/')) throw new Error('Invalid upload path.')
-        return {
-          allowedContentTypes: [...VIDEO_TYPES, ...LOGO_TYPES],
-          maximumSizeInBytes: MAX_UPLOAD_BYTES,
-          addRandomSuffix: true,
-        }
+        checkPath(pathname)
+        return { ...rules, addRandomSuffix: true }
       },
     })
     return Response.json(result)
   } catch (error) {
-    console.error('Upload token request failed', error)
+    console.error('Upload permission request failed', error)
     return Response.json({ error: error.message }, { status: 400 })
   }
 }

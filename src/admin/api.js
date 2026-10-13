@@ -26,34 +26,40 @@ const safeName = (name) =>
     .replace(/[^a-z0-9.]+/g, '-')
     .replace(/^-+|-+$/g, '') || 'file'
 
-// The Blob SDK reports any failure to get an upload token as the same generic
-// message. Ask our endpoint again to find out what it actually said.
-async function explainTokenFailure(pathname, multipart) {
+// Asks our upload endpoint for permission to send one file to the Blob store.
+// Done here rather than inside the Blob SDK, which hides the server's reason
+// for a refusal behind a generic message.
+async function requestUploadPermission(type, pathname, multipart) {
   const response = await fetch('/api/admin/upload', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      type: 'blob.generate-client-token',
-      payload: { pathname, clientPayload: null, multipart },
-    }),
+    body: JSON.stringify({ type, payload: { pathname, clientPayload: null, multipart } }),
   })
-  if (response.ok) return 'The upload could not be started. Try publishing again.'
   const text = await response.text()
-  let detail = text.slice(0, 300)
+  let data = null
   try {
-    detail = JSON.parse(text).error ?? detail
+    data = JSON.parse(text)
   } catch {
-    // Not JSON: keep the raw text.
+    // Not JSON (e.g. a platform error page): reported below.
   }
-  return `The server refused the upload (HTTP ${response.status}): ${detail || 'no details given'}`
+  if (response.status === 401) {
+    window.location.reload()
+    return new Promise(() => {})
+  }
+  if (!response.ok || !data) {
+    const detail = data?.error ?? text.replace(/<[^>]+>/g, ' ').trim().slice(0, 300)
+    throw new Error(`The server refused the upload (HTTP ${response.status}): ${detail || 'no details given'}`)
+  }
+  return data
 }
 
-// Uploads one file for a slot and resolves to its public URL. `onProgress`
-// receives a percentage where the storage reports one.
-export async function uploadFile(storage, slot, file, onProgress) {
+// Uploads one file for a slot and resolves to its public URL. `mode` is how
+// this deployment accepts uploads (see uploadMode in api/_lib/store.js);
+// `onProgress` receives a percentage where the storage reports one.
+export async function uploadFile(mode, slot, file, onProgress) {
   const pathname = `media/${slot}/${safeName(file.name)}`
 
-  if (storage === 'local') {
+  if (mode === 'local') {
     const { url } = await request(`/_cms/upload?path=${encodeURIComponent(pathname)}`, {
       method: 'PUT',
       body: file,
@@ -61,21 +67,26 @@ export async function uploadFile(storage, slot, file, onProgress) {
     return url
   }
 
-  const { upload } = await import('@vercel/blob/client')
   const multipart = file.size > 20 * 1024 * 1024
-  try {
-    const blob = await upload(pathname, file, {
-      access: 'public',
+  const options = {
+    access: 'public',
+    contentType: file.type || undefined,
+    multipart,
+    onUploadProgress: ({ percentage }) => onProgress(Math.round(percentage)),
+  }
+  const blobClient = await import('@vercel/blob/client')
+
+  if (mode === 'presigned') {
+    // Checked first so a refusal is reported with its reason.
+    await requestUploadPermission('blob.generate-presigned-url', pathname, multipart)
+    const blob = await blobClient.uploadPresigned(pathname, file, {
+      ...options,
       handleUploadUrl: '/api/admin/upload',
-      contentType: file.type || undefined,
-      multipart,
-      onUploadProgress: ({ percentage }) => onProgress(Math.round(percentage)),
     })
     return blob.url
-  } catch (error) {
-    if (/retrieve the client token/.test(error.message)) {
-      throw new Error(await explainTokenFailure(pathname, multipart), { cause: error })
-    }
-    throw error
   }
+
+  const { clientToken } = await requestUploadPermission('blob.generate-client-token', pathname, multipart)
+  const blob = await blobClient.put(pathname, file, { ...options, token: clientToken })
+  return blob.url
 }

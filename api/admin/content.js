@@ -5,15 +5,19 @@ import {
   removeMedia,
   sanitizeContent,
   storageKind,
+  uploadMode,
   writeContent,
 } from '../_lib/store.js'
 
 const json = (body, status = 200) =>
   Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } })
 
+// Only signed-in admins reach this, so unexpected errors are reported in full:
+// it is the quickest way to see what a storage problem actually is.
 function failure(error) {
-  if (!error.status) console.error(error)
-  return json({ error: error.status ? error.message : 'Something went wrong.' }, error.status ?? 500)
+  if (error.status) return json({ error: error.message }, error.status)
+  console.error(error)
+  return json({ error: `Something went wrong: ${error.message}` }, 500)
 }
 
 // The latest saved content, plus where uploads should be sent.
@@ -22,7 +26,7 @@ export async function GET(request) {
   if (denied) return denied
   try {
     const { content, etag } = await readContent({ fresh: true })
-    return json({ content, etag, storage: storageKind() })
+    return json({ content, etag, storage: storageKind(), upload: uploadMode() })
   } catch (error) {
     return failure(error)
   }

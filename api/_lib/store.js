@@ -30,6 +30,14 @@ export function storageKind() {
   return 'local'
 }
 
+// How the browser gets a file into storage: 'token' (a client token minted
+// from the read-write token), 'presigned' (a store connected without one), or
+// 'local' (the dev server writes it to .cms/).
+export function uploadMode() {
+  if (storageKind() === 'local') return 'local'
+  return process.env.BLOB_READ_WRITE_TOKEN ? 'token' : 'presigned'
+}
+
 const empty = () => ({ media: {} })
 
 // `fresh` skips the CDN cache; the admin always needs the latest saved copy.

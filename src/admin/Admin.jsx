@@ -14,7 +14,7 @@ const groups = slots.reduce((byGroup, slot) => {
 // to upload, null to remove, or a string for a name) and nothing reaches the
 // live site until Publish.
 export default function Admin() {
-  const [store, setStore] = useState(null) // { media, etag, storage } as last saved
+  const [store, setStore] = useState(null) // { media, etag, storage, upload } as last saved
   const [draft, setDraft] = useState({})
   const [progress, setProgress] = useState(null) // message while publishing
   const [notice, setNotice] = useState(null) // { kind: 'error' | 'ok', text }
@@ -22,7 +22,9 @@ export default function Admin() {
 
   useEffect(() => {
     loadContent()
-      .then(({ content, etag, storage }) => setStore({ media: content.media ?? {}, etag, storage }))
+      .then(({ content, etag, storage, upload }) =>
+        setStore({ media: content.media ?? {}, etag, storage, upload }),
+      )
       .catch((error) => setNotice({ kind: 'error', text: error.message }))
   }, [])
 
@@ -68,7 +70,7 @@ export default function Admin() {
         if (uploaded.current.has(file)) continue
         const label = `Uploading ${i + 1} of ${files.length}: ${file.name}`
         setProgress(label)
-        const url = await uploadFile(store.storage, slot, file, (percent) =>
+        const url = await uploadFile(store.upload, slot, file, (percent) =>
           setProgress(`${label} (${percent}%)`),
         )
         uploaded.current.set(file, url)
@@ -168,6 +170,9 @@ export default function Admin() {
               </div>
             </section>
           ))}
+          <p className={`mono-label ${styles.build}`}>
+            Build {import.meta.env.VITE_BUILD} · Storage {store.storage} · Upload {store.upload}
+          </p>
         </main>
       )}
     </div>
