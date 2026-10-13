@@ -58,6 +58,8 @@ export const about = {
 
 // Every slot the admin can fill. `accepts` is what a slot takes: 'video'
 // (a clip plus a poster/still), 'image', or 'logo' (an image plus a name).
+// Slots with a `caption` can have their tile text edited; the value here is
+// the default shown while the slot is empty.
 export const slots = [
   { id: 'reel', group: 'Hero', label: 'Showreel', ratio: '16/9', accepts: 'video' },
   ...work.flat().map(({ slot, label, ratio }) => ({
@@ -66,22 +68,28 @@ export const slots = [
     label,
     ratio,
     accepts: 'video',
+    caption: label,
   })),
-  ...services.map(({ slot, title }) => ({
+  ...services.map(({ slot, title, media }) => ({
     id: slot,
     group: 'Services',
     label: title,
     ratio: '4/3',
     accepts: 'video',
+    caption: media,
   })),
   ...clients.map(({ slot, name }) => ({ id: slot, group: 'Client logos', label: name, accepts: 'logo' })),
-  { id: 'portrait', group: 'About', label: 'Portrait', ratio: '4/5', accepts: 'image' },
+  { id: 'portrait', group: 'About', label: 'Portrait', ratio: '4/5', accepts: 'image', caption: 'portrait' },
 ]
 
 // Merges the saved CMS document (see api/content.js) into the page structure.
 export function resolveContent(manifest) {
   const entry = (slot) => manifest?.media?.[slot] ?? {}
-  const clip = (slot) => ({ src: entry(slot).video ?? null, poster: entry(slot).image ?? null })
+  const clip = (slot) => ({
+    src: entry(slot).video ?? null,
+    poster: entry(slot).image ?? null,
+    caption: entry(slot).caption ?? null,
+  })
 
   return {
     reel: clip('reel'),
@@ -92,6 +100,6 @@ export function resolveContent(manifest) {
       name: entry(slot).name ?? name,
       logo: entry(slot).image ?? null,
     })),
-    portrait: entry('portrait').image ?? null,
+    portrait: { src: entry('portrait').image ?? null, caption: entry('portrait').caption ?? null },
   }
 }

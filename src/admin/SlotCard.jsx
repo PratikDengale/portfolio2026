@@ -90,6 +90,7 @@ export default function SlotCard({ slot, saved, changes, disabled, onStage, onRe
   const image = fieldValue(saved?.image, changes?.image)
   const isLogo = slot.accepts === 'logo'
   const name = changes?.name ?? saved?.name ?? ''
+  const caption = changes?.caption ?? saved?.caption ?? ''
 
   return (
     <article className={styles.card} data-pending={changes ? '' : undefined} aria-label={slot.label}>
@@ -132,6 +133,20 @@ export default function SlotCard({ slot, saved, changes, disabled, onStage, onRe
         disabled={disabled}
         onChange={(file) => onStage('image', file)}
       />
+      {slot.caption !== undefined && (
+        <label className={styles.textField}>
+          <span className={`mono-label ${styles.fieldLabel}`}>Caption</span>
+          <input
+            className={styles.name}
+            type="text"
+            value={caption}
+            maxLength={80}
+            placeholder={slot.caption}
+            disabled={disabled}
+            onChange={(event) => onStage('caption', event.target.value)}
+          />
+        </label>
+      )}
       {isLogo && (
         <input
           className={styles.name}

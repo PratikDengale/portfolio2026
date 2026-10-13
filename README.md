@@ -20,6 +20,7 @@ Changes are staged in the browser and nothing is uploaded or shown on the site u
 - Video: MP4 (H.264) or WebM. Images: JPG, PNG, WebP or AVIF. Logos can also be SVG. 200 MB per file.
 - A video slot takes a clip and a poster/still. The poster shows before the clip plays; a slot with only a still shows as an image.
 - Crop media to the ratio shown on each card; it is fitted with `object-fit: cover`.
+- Work tiles, service cards and the portrait have an optional caption: the small text at the bottom-left of the tile. An empty slot shows it over the placeholder; a filled slot shows text only if a caption is set.
 - Replaced and removed files are deleted from storage on publish.
 
 ### Setting it up on Vercel (once)

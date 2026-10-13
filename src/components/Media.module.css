@@ -38,3 +38,17 @@
   text-transform: uppercase;
   color: rgba(236, 235, 231, 0.4);
 }
+
+/* CMS caption over real media: same position as the placeholder label, at
+   full strength over a soft dark fade so it reads on bright footage too. */
+.caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 56px 18px 16px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0));
+  color: var(--ink);
+  line-height: 1.4;
+  pointer-events: none;
+}

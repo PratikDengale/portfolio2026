@@ -6,8 +6,9 @@ const VIDEO = /\.(mp4|webm|mov|m4v)$/i
 
 // A fixed-ratio media tile. Renders a looping video when `src` is a video, an
 // image when there is only a still, and a labelled placeholder when neither
-// exists yet.
-export default function Media({ ratio, src, poster, alt, label }) {
+// exists yet. `caption` is optional text set in the CMS: it replaces the
+// placeholder's label, and is the only text shown over real media.
+export default function Media({ ratio, src, poster, alt, label, caption }) {
   const videoRef = useRef(null)
   const reducedMotion = usePrefersReducedMotion()
   const isVideo = VIDEO.test(src ?? '')
@@ -46,6 +47,7 @@ export default function Media({ ratio, src, poster, alt, label }) {
           controls={reducedMotion}
           aria-label={alt}
         />
+        {caption && <p className={`mono-label ${styles.caption}`}>{caption}</p>}
       </div>
     )
   }
@@ -54,6 +56,7 @@ export default function Media({ ratio, src, poster, alt, label }) {
     return (
       <div className={styles.tile} style={{ aspectRatio: ratio }}>
         <img className={styles.fill} src={image} alt={alt ?? ''} loading="lazy" decoding="async" />
+        {caption && <p className={`mono-label ${styles.caption}`}>{caption}</p>}
       </div>
     )
   }
@@ -64,7 +67,7 @@ export default function Media({ ratio, src, poster, alt, label }) {
       style={{ aspectRatio: ratio }}
       role="img"
       aria-label={alt ?? label}
-      data-label={label}
+      data-label={caption ?? label}
     />
   )
 }

@@ -11,7 +11,7 @@ const groups = slots.reduce((byGroup, slot) => {
 }, {})
 
 // The media manager. Changes are staged in `draft` (per slot and field: a File
-// to upload, null to remove, or a string for a name) and nothing reaches the
+// to upload, null to remove, or a string for a name or caption) and nothing reaches the
 // live site until Publish.
 export default function Admin() {
   const [store, setStore] = useState(null) // { media, etag, storage, upload } as last saved
@@ -145,6 +145,11 @@ export default function Admin() {
             Choose files for any slot, then Publish to put them on the site. Video: MP4 (H.264) or
             WebM. Images: JPG, PNG, WebP or AVIF; logos can also be SVG. Keep clips short and
             compressed, since visitors download them as the page loads.
+          </p>
+          <p className={styles.intro}>
+            A caption is the small text at the bottom-left of a tile. An empty slot shows its
+            caption (or the greyed default) over the placeholder. Once a slot has media, text
+            appears over it only if you type a caption; leave it empty for a clean image.
           </p>
           {store.storage === 'local' && (
             <p className={styles.intro}>

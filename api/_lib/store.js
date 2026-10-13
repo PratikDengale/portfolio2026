@@ -113,7 +113,7 @@ export async function removeMedia(urls) {
 }
 
 // Rebuilds a content document from untrusted input, keeping only what the
-// site understands: per slot an optional video, image and display name.
+// site understands: per slot an optional video, image, caption and name.
 export function sanitizeContent(input) {
   const invalid = (message) => new StoreError(message, 400)
   const entries = Object.entries(input?.media ?? {})
@@ -128,8 +128,10 @@ export function sanitizeContent(input) {
       if (!isOwnMedia(value[field])) throw invalid(`Slot "${slot}" points at a file outside the media store.`)
       entry[field] = value[field]
     }
-    const name = typeof value?.name === 'string' ? value.name.trim().slice(0, 80) : ''
-    if (name) entry.name = name
+    for (const field of ['name', 'caption']) {
+      const text = typeof value?.[field] === 'string' ? value[field].trim().slice(0, 80) : ''
+      if (text) entry[field] = text
+    }
     if (Object.keys(entry).length) media[slot] = entry
   }
   return { media, updatedAt: new Date().toISOString() }

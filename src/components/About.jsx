@@ -11,7 +11,13 @@ export default function About() {
         About
       </h2>
       <div className={styles.portrait}>
-        <Media ratio="4/5" src={portrait} label="portrait" alt={`Portrait of ${site.name}`} />
+        <Media
+          ratio="4/5"
+          src={portrait.src}
+          caption={portrait.caption}
+          label="portrait"
+          alt={`Portrait of ${site.name}`}
+        />
       </div>
       <div className={styles.text}>
         <p className={styles.body}>{about.body}</p>
