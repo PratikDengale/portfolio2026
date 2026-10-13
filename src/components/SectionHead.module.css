@@ -1,0 +1,10 @@
+.head {
+  display: flex;
+  margin-bottom: 28px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.label {
+  color: var(--muted);
+}

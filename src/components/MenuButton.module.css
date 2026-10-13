@@ -1,0 +1,35 @@
+.button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 44px;
+  height: 44px;
+  /* 28px lines centred in a 44px box: pull the box out so the line ends sit
+     exactly on the gutter. */
+  margin-right: -8px;
+  color: var(--ink);
+}
+
+.button:hover {
+  color: var(--muted);
+}
+
+.line {
+  width: 28px;
+  height: 1.5px;
+  background: currentColor;
+}
+
+.close {
+  gap: 0;
+}
+
+.close .line:first-child {
+  transform: translateY(0.75px) rotate(45deg);
+}
+
+.close .line:last-child {
+  transform: translateY(-0.75px) rotate(-45deg);
+}

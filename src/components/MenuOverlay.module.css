@@ -1,0 +1,79 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow-y: auto;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.overlay[open] {
+  display: flex;
+  flex-direction: column;
+  animation: fade 200ms ease-out;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay[open] {
+    animation: none;
+  }
+}
+
+/* Mirrors the hero top bar so the dot and button don't move. */
+.bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--bar-pad) var(--gutter);
+}
+
+.links {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.08em;
+  padding: 24px var(--gutter);
+  font-size: clamp(40px, 6vw, 88px);
+}
+
+.link {
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+
+.link:hover {
+  opacity: 1;
+  color: var(--muted);
+}
+
+.foot {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  padding: 0 var(--gutter) var(--gutter);
+  color: var(--muted);
+}
+
+.icons {
+  display: flex;
+  gap: 20px;
+  color: var(--ink);
+}

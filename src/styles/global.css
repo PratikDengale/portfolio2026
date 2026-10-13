@@ -1,0 +1,164 @@
+@import '@fontsource-variable/geist';
+@import '@fontsource/geist-mono/400.css';
+@import '@fontsource/geist-mono/500.css';
+
+:root {
+  --bg: #0b0b0a; /* page */
+  --surface: #161615; /* media placeholder / poster bg */
+  --ink: #ecebe7; /* primary text on dark */
+  --muted: #8a8984; /* labels on dark */
+  --rule: rgba(236, 235, 231, 0.12);
+  --logo-border: rgba(236, 235, 231, 0.1);
+  --footer-bg: #ecebe7; /* inverted footer */
+  --footer-ink: #0b0b0a;
+  --footer-muted: #6f6e6a;
+  --rec: oklch(0.66 0.21 27);
+
+  --gutter: 40px; /* page side padding at 1440 */
+  --gap: 24px; /* grid gap */
+  --section: 160px; /* space above a section */
+  --section-first: 120px; /* space between hero and first section */
+  --bar-pad: 28px; /* top bar vertical padding */
+  --font-sans: 'Geist Variable', 'Geist', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, monospace;
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --section: 120px;
+    --section-first: 96px;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --gutter: 24px;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --gutter: 20px;
+    --gap: 16px;
+    --section: 88px;
+    --section-first: 72px;
+    --bar-pad: 16px;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* No visible scrollbar; the page (and the menu overlay) still scroll. */
+html,
+dialog {
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar,
+dialog::-webkit-scrollbar {
+  display: none;
+}
+
+/* Lock page scroll while the menu overlay is open. */
+html:has(dialog[open]) {
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+dl,
+dd {
+  margin: 0;
+}
+
+ul {
+  padding: 0;
+  list-style: none;
+}
+
+img,
+video,
+svg {
+  display: block;
+}
+
+button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a:hover {
+  opacity: 0.7;
+}
+
+:focus-visible {
+  outline: 1px solid var(--focus-ring, var(--ink));
+  outline-offset: 3px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Type roles shared across components. Colour is left to the component. */
+
+/* Mono label — section heads, meta */
+.mono-label {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Mono UI — roles row, status */
+.mono-ui {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}

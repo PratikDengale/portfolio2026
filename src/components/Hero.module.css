@@ -1,0 +1,68 @@
+.hero {
+  position: relative;
+  height: min(56.25vw, 100svh); /* 810px at 1440 */
+  min-height: 560px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.reel {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--bar-pad) var(--gutter);
+}
+
+.bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  container-type: inline-size;
+}
+
+.roles {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 var(--gutter);
+  color: var(--ink);
+  /* Sit the row closer to the wordmark's cap line; scales with the wordmark
+     (16px at 1440). */
+  translate: 0 1.1cqw;
+}
+
+.wordmarkWrap {
+  padding: 0 var(--gutter) 6px;
+}
+
+/* font-size and margin-left are the pre-JS fallback (calibrated for Geist 600
+   against the full-bleed .bottom container at 1440); useFitText replaces both
+   with measured values. */
+.wordmark {
+  margin-left: -0.078em;
+  font-size: 15.17cqw;
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.055em;
+  white-space: nowrap;
+  visibility: hidden;
+}
+
+.wordmark[data-fitted] {
+  visibility: visible;
+}
