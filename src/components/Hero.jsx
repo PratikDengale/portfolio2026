@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { site } from '../data/content'
+import { useContent } from '../hooks/useContent'
 import { useFitText } from '../hooks/useFitText'
 import { usePrefersReducedMotion } from '../hooks/useMediaQuery'
 import MenuButton from './MenuButton'
@@ -7,7 +8,8 @@ import RecDot from './RecDot'
 import styles from './Hero.module.css'
 
 export default function Hero({ menuOpen, onOpenMenu }) {
-  const { name, roles, reel } = site
+  const { name, roles } = site
+  const { reel } = useContent()
   const reducedMotion = usePrefersReducedMotion()
 
   // The wordmark's ink is pinned to the outer ink edges of the roles row.
@@ -17,9 +19,10 @@ export default function Hero({ menuOpen, onOpenMenu }) {
 
   return (
     <header id="top" className={styles.hero}>
-      {reel.src || reel.webm ? (
+      {reel.src ? (
         <video
           className={styles.reel}
+          src={reel.src}
           autoPlay={!reducedMotion}
           muted
           loop
@@ -27,10 +30,7 @@ export default function Hero({ menuOpen, onOpenMenu }) {
           preload="metadata"
           poster={reel.poster ?? undefined}
           aria-hidden="true"
-        >
-          {reel.webm && <source src={reel.webm} type="video/webm" />}
-          {reel.src && <source src={reel.src} type="video/mp4" />}
-        </video>
+        />
       ) : (
         reel.poster && <img className={styles.reel} src={reel.poster} alt="" />
       )}

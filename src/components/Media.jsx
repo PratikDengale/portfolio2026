@@ -7,10 +7,10 @@ const VIDEO = /\.(mp4|webm|mov|m4v)$/i
 // A fixed-ratio media tile. Renders a looping video when `src` is a video, an
 // image when there is only a still, and a labelled placeholder when neither
 // exists yet.
-export default function Media({ ratio, src, webm, poster, alt, label }) {
+export default function Media({ ratio, src, poster, alt, label }) {
   const videoRef = useRef(null)
   const reducedMotion = usePrefersReducedMotion()
-  const isVideo = VIDEO.test(src ?? '') || Boolean(webm)
+  const isVideo = VIDEO.test(src ?? '')
   const image = isVideo ? null : (src ?? poster)
 
   // Play only while at least 40% of the tile is on screen.
@@ -37,6 +37,7 @@ export default function Media({ ratio, src, webm, poster, alt, label }) {
         <video
           ref={videoRef}
           className={styles.fill}
+          src={src}
           muted
           loop
           playsInline
@@ -44,10 +45,7 @@ export default function Media({ ratio, src, webm, poster, alt, label }) {
           poster={poster ?? undefined}
           controls={reducedMotion}
           aria-label={alt}
-        >
-          {webm && <source src={webm} type="video/webm" />}
-          {src && <source src={src} type="video/mp4" />}
-        </video>
+        />
       </div>
     )
   }

@@ -1,4 +1,4 @@
-import { work } from '../data/content'
+import { useContent } from '../hooks/useContent'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import Media from './Media'
 import SectionHead from './SectionHead'
@@ -17,6 +17,7 @@ function arrange(columns, count) {
 }
 
 export default function SelectedWork() {
+  const { work } = useContent()
   // Breakpoints match SelectedWork.module.css.
   const single = useMediaQuery('(max-width: 640px)')
   const double = useMediaQuery('(max-width: 1024px)')
@@ -28,8 +29,8 @@ export default function SelectedWork() {
       <div className={styles.grid}>
         {columns.map((column, i) => (
           <div key={i} className={styles.column}>
-            {column.map(({ label, ...media }) => (
-              <Media key={label} label={label} {...media} />
+            {column.map(({ slot, ...item }) => (
+              <Media key={slot} {...item} />
             ))}
           </div>
         ))}

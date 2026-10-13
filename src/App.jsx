@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import About from './components/About'
+import ContentProvider from './components/ContentProvider'
 import Footer from './components/Footer'
 import Hero from './components/Hero'
 import MenuOverlay from './components/MenuOverlay'
@@ -10,7 +11,7 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
-    <>
+    <ContentProvider>
       <Hero menuOpen={menuOpen} onOpenMenu={() => setMenuOpen(true)} />
       <main>
         <SelectedWork />
@@ -19,6 +20,6 @@ export default function App() {
       </main>
       <Footer />
       <MenuOverlay open={menuOpen} onClose={() => setMenuOpen(false)} />
-    </>
+    </ContentProvider>
   )
 }

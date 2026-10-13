@@ -1,0 +1,104 @@
+.page {
+  min-height: 100dvh;
+  padding-bottom: 96px;
+}
+
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 14px var(--gutter);
+  border-bottom: 1px solid var(--rule);
+  background: var(--bg);
+}
+
+.title {
+  flex: 1;
+  min-width: 160px;
+  color: var(--muted);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--rule);
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.button:hover:not(:disabled) {
+  opacity: 1;
+  border-color: var(--ink);
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.primary {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.status {
+  padding: 0 var(--gutter);
+}
+
+.status p {
+  margin-top: 20px;
+  padding: 12px 14px;
+  border: 1px solid var(--rule);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.progress {
+  color: var(--ink);
+}
+
+.ok {
+  border-color: var(--ink);
+}
+
+.status .error {
+  border-color: var(--rec);
+  color: var(--rec);
+}
+
+.intro {
+  max-width: 720px;
+  margin-top: 28px;
+  padding: 0 var(--gutter);
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.intro code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.group {
+  padding: 56px var(--gutter) 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--gap);
+}
+
+.logoGrid {
+  composes: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}

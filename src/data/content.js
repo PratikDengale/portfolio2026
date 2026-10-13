@@ -1,14 +1,9 @@
-import available from 'virtual:media-manifest'
-
-// Media lives in public/media. Anything that hasn't been dropped in yet
-// resolves to null, which renders the hatched placeholder tile.
-const present = new Set(available)
-const file = (path) => (present.has(path) ? path : null)
-const clip = (name) => ({
-  src: file(`/media/${name}.mp4`),
-  webm: file(`/media/${name}.webm`),
-  poster: file(`/media/${name}.avif`) ?? file(`/media/${name}.jpg`),
-})
+// Copy and structure for the page.
+//
+// Media files are not stored here. Every media position on the page is a
+// "slot" with an id; the files that fill the slots are managed at /admin and
+// merged in at runtime by resolveContent(). An empty slot renders the hatched
+// placeholder tile.
 
 export const site = {
   name: 'Pratik Dengale',
@@ -20,38 +15,37 @@ export const site = {
     instagramHandle: 'pratik_d10',
     whatsapp: 'https://wa.me/REPLACE_WITH_NUMBER',
   },
-  reel: clip('reel-2026'),
 }
 
 // Masonry is authored as 3 explicit columns so every column ends level
 // (each column holds one 16:9, one 9:16, one 1:1). Do NOT use CSS columns.
-export const work = [
+const work = [
   [
-    { ratio: '16/9', label: 'fashion film', alt: 'Fashion film', ...clip('work-fashion-film') },
-    { ratio: '9/16', label: 'beauty vertical', alt: 'Beauty vertical', ...clip('work-beauty-vertical') },
-    { ratio: '1/1', label: 'lookbook loop', alt: 'Lookbook loop', ...clip('work-lookbook-loop') },
+    { slot: 'work/fashion-film', ratio: '16/9', label: 'fashion film', alt: 'Fashion film' },
+    { slot: 'work/beauty-vertical', ratio: '9/16', label: 'beauty vertical', alt: 'Beauty vertical' },
+    { slot: 'work/lookbook-loop', ratio: '1/1', label: 'lookbook loop', alt: 'Lookbook loop' },
   ],
   [
-    { ratio: '1/1', label: 'editorial', alt: 'Editorial', ...clip('work-editorial') },
-    { ratio: '16/9', label: 'aerial tracking', alt: 'Aerial tracking shot', ...clip('work-aerial-tracking') },
-    { ratio: '9/16', label: 'social cut', alt: 'Social cut', ...clip('work-social-cut') },
+    { slot: 'work/editorial', ratio: '1/1', label: 'editorial', alt: 'Editorial' },
+    { slot: 'work/aerial-tracking', ratio: '16/9', label: 'aerial tracking', alt: 'Aerial tracking shot' },
+    { slot: 'work/social-cut', ratio: '9/16', label: 'social cut', alt: 'Social cut' },
   ],
   [
-    { ratio: '9/16', label: 'swimwear vertical', alt: 'Swimwear vertical', ...clip('work-swimwear-vertical') },
-    { ratio: '1/1', label: 'product loop', alt: 'Product loop', ...clip('work-product-loop') },
-    { ratio: '16/9', label: 'brand film', alt: 'Brand film', ...clip('work-brand-film') },
+    { slot: 'work/swimwear-vertical', ratio: '9/16', label: 'swimwear vertical', alt: 'Swimwear vertical' },
+    { slot: 'work/product-loop', ratio: '1/1', label: 'product loop', alt: 'Product loop' },
+    { slot: 'work/brand-film', ratio: '16/9', label: 'brand film', alt: 'Brand film' },
   ],
 ]
 
-export const services = [
-  { title: 'Cinematography', media: 'on-set camera bts', ...clip('service-cinematography') },
-  { title: 'Color Grading', media: 'edit suite / timeline', ...clip('service-color-grading') },
-  { title: 'Photography', media: 'drone in flight', ...clip('service-photography') },
+const services = [
+  { slot: 'service/cinematography', title: 'Cinematography', media: 'on-set camera bts' },
+  { slot: 'service/color-grading', title: 'Color Grading', media: 'edit suite / timeline' },
+  { slot: 'service/photography', title: 'Photography', media: 'drone in flight' },
 ]
 
-export const clients = Array.from({ length: 12 }, (_, i) => ({
+const clients = Array.from({ length: 12 }, (_, i) => ({
+  slot: `logo/${String(i + 1).padStart(2, '0')}`,
   name: `Client ${i + 1}`,
-  logo: file(`/media/logo-${String(i + 1).padStart(2, '0')}.svg`),
 }))
 
 export const about = {
@@ -60,5 +54,44 @@ export const about = {
     { k: 'Roles', v: 'Cinematographer / Colorist / Drone Pilot' },
     { k: 'Social', v: 'Instagram / Vimeo' },
   ],
-  portrait: file('/media/portrait.jpg'),
+}
+
+// Every slot the admin can fill. `accepts` is what a slot takes: 'video'
+// (a clip plus a poster/still), 'image', or 'logo' (an image plus a name).
+export const slots = [
+  { id: 'reel', group: 'Hero', label: 'Showreel', ratio: '16/9', accepts: 'video' },
+  ...work.flat().map(({ slot, label, ratio }) => ({
+    id: slot,
+    group: 'Selected work',
+    label,
+    ratio,
+    accepts: 'video',
+  })),
+  ...services.map(({ slot, title }) => ({
+    id: slot,
+    group: 'Services',
+    label: title,
+    ratio: '4/3',
+    accepts: 'video',
+  })),
+  ...clients.map(({ slot, name }) => ({ id: slot, group: 'Client logos', label: name, accepts: 'logo' })),
+  { id: 'portrait', group: 'About', label: 'Portrait', ratio: '4/5', accepts: 'image' },
+]
+
+// Merges the saved CMS document (see api/content.js) into the page structure.
+export function resolveContent(manifest) {
+  const entry = (slot) => manifest?.media?.[slot] ?? {}
+  const clip = (slot) => ({ src: entry(slot).video ?? null, poster: entry(slot).image ?? null })
+
+  return {
+    reel: clip('reel'),
+    work: work.map((column) => column.map((item) => ({ ...item, ...clip(item.slot) }))),
+    services: services.map((item) => ({ ...item, ...clip(item.slot) })),
+    clients: clients.map(({ slot, name }) => ({
+      slot,
+      name: entry(slot).name ?? name,
+      logo: entry(slot).image ?? null,
+    })),
+    portrait: entry('portrait').image ?? null,
+  }
 }

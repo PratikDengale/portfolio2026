@@ -65,13 +65,14 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
-/* No visible scrollbar; the page (and the menu overlay) still scroll. */
-html,
+/* No visible scrollbar on the site; the page (and the menu overlay) still
+   scroll. The admin keeps its scrollbar. */
+html:not(.admin),
 dialog {
   scrollbar-width: none;
 }
 
-html::-webkit-scrollbar,
+html:not(.admin)::-webkit-scrollbar,
 dialog::-webkit-scrollbar {
   display: none;
 }

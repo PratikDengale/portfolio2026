@@ -63,13 +63,15 @@ export function useFitText(text, { alignStart, alignEnd } = {}) {
       .load(`${style.fontStyle} ${style.fontWeight} 1em ${style.fontFamily}`, text)
       .then(reveal, reveal)
 
-    // The labels we align to may swap fonts later.
+    // Refit when the viewport changes, and when the labels we align to swap
+    // fonts. (Not a ResizeObserver on the box: fitting changes the box's own
+    // height, which would re-trigger the observer in a loop.)
+    fit()
     document.fonts.addEventListener('loadingdone', fit)
-    const ro = new ResizeObserver(fit)
-    ro.observe(box)
+    window.addEventListener('resize', fit)
     return () => {
       document.fonts.removeEventListener('loadingdone', fit)
-      ro.disconnect()
+      window.removeEventListener('resize', fit)
     }
   }, [text, alignStart, alignEnd])
 
