@@ -27,8 +27,20 @@ function safeEqual(a, b) {
   return diff === 0
 }
 
+// Behind Vercel's proxy the URL a function sees is not reliably the public
+// one, so the forwarded headers are checked as well.
+function isHttps(request) {
+  const forwarded = request.headers.get('x-forwarded-proto')
+  return (forwarded ?? new URL(request.url).protocol).startsWith('https')
+}
+
+function ownHosts(request) {
+  const { headers } = request
+  return [new URL(request.url).host, headers.get('x-forwarded-host'), headers.get('host')].filter(Boolean)
+}
+
 function cookie(request, value, maxAge) {
-  const secure = new URL(request.url).protocol === 'https:' ? '; Secure' : ''
+  const secure = isHttps(request) ? '; Secure' : ''
   return `${COOKIE}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure}`
 }
 
@@ -65,7 +77,8 @@ export async function isAuthenticated(request) {
 export function isCrossOrigin(request) {
   if (request.method === 'GET' || request.method === 'HEAD') return false
   const origin = request.headers.get('origin')
-  return Boolean(origin) && new URL(origin).host !== new URL(request.url).host
+  if (!origin || origin === 'null') return Boolean(origin)
+  return !ownHosts(request).includes(new URL(origin).host)
 }
 
 // Second check inside each admin function, in case the middleware is ever

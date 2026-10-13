@@ -26,6 +26,28 @@ const safeName = (name) =>
     .replace(/[^a-z0-9.]+/g, '-')
     .replace(/^-+|-+$/g, '') || 'file'
 
+// The Blob SDK reports any failure to get an upload token as the same generic
+// message. Ask our endpoint again to find out what it actually said.
+async function explainTokenFailure(pathname, multipart) {
+  const response = await fetch('/api/admin/upload', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      type: 'blob.generate-client-token',
+      payload: { pathname, clientPayload: null, multipart },
+    }),
+  })
+  if (response.ok) return 'The upload could not be started. Try publishing again.'
+  const text = await response.text()
+  let detail = text.slice(0, 300)
+  try {
+    detail = JSON.parse(text).error ?? detail
+  } catch {
+    // Not JSON: keep the raw text.
+  }
+  return `The server refused the upload (HTTP ${response.status}): ${detail || 'no details given'}`
+}
+
 // Uploads one file for a slot and resolves to its public URL. `onProgress`
 // receives a percentage where the storage reports one.
 export async function uploadFile(storage, slot, file, onProgress) {
@@ -40,12 +62,20 @@ export async function uploadFile(storage, slot, file, onProgress) {
   }
 
   const { upload } = await import('@vercel/blob/client')
-  const blob = await upload(pathname, file, {
-    access: 'public',
-    handleUploadUrl: '/api/admin/upload',
-    contentType: file.type || undefined,
-    multipart: file.size > 20 * 1024 * 1024,
-    onUploadProgress: ({ percentage }) => onProgress(Math.round(percentage)),
-  })
-  return blob.url
+  const multipart = file.size > 20 * 1024 * 1024
+  try {
+    const blob = await upload(pathname, file, {
+      access: 'public',
+      handleUploadUrl: '/api/admin/upload',
+      contentType: file.type || undefined,
+      multipart,
+      onUploadProgress: ({ percentage }) => onProgress(Math.round(percentage)),
+    })
+    return blob.url
+  } catch (error) {
+    if (/retrieve the client token/.test(error.message)) {
+      throw new Error(await explainTokenFailure(pathname, multipart), { cause: error })
+    }
+    throw error
+  }
 }

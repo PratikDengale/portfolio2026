@@ -23,6 +23,7 @@ export async function POST(request) {
     })
     return Response.json(result)
   } catch (error) {
+    console.error('Upload token request failed', error)
     return Response.json({ error: error.message }, { status: 400 })
   }
 }
