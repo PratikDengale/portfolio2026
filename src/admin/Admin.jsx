@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import SectionHead from '../components/SectionHead'
 import { site, slots } from '../data/content'
 import { loadContent, saveContent, uploadFile } from './api'
+import { fileSize } from './fileSize'
 import SlotCard from './SlotCard'
 import styles from './Admin.module.css'
 
@@ -28,6 +29,10 @@ export default function Admin() {
       .catch((error) => setNotice({ kind: 'error', text: error.message }))
   }, [])
 
+  const publishedBytes = Object.values(store?.media ?? {}).reduce(
+    (total, entry) => total + (entry.videoSize ?? 0) + (entry.imageSize ?? 0),
+    0,
+  )
   const changeCount = Object.values(draft).reduce((n, changes) => n + Object.keys(changes).length, 0)
   const publishing = progress !== null
 
@@ -81,9 +86,15 @@ export default function Admin() {
       for (const [slot, changes] of Object.entries(draft)) {
         const entry = { ...media[slot] }
         for (const [field, value] of Object.entries(changes)) {
-          if (value instanceof File) entry[field] = uploaded.current.get(value)
-          else if (value) entry[field] = value
-          else delete entry[field]
+          if (value instanceof File) {
+            entry[field] = uploaded.current.get(value)
+            entry[`${field}Size`] = value.size
+          } else if (value) {
+            entry[field] = value
+          } else {
+            delete entry[field]
+            delete entry[`${field}Size`]
+          }
         }
         if (Object.keys(entry).length) media[slot] = entry
         else delete media[slot]
@@ -151,6 +162,13 @@ export default function Admin() {
             caption (or the greyed default) over the placeholder. Once a slot has media, text
             appears over it only if you type a caption; leave it empty for a clean image.
           </p>
+          {publishedBytes > 0 && (
+            <p className={styles.intro}>
+              Published media: <strong className={styles.weight}>{fileSize(publishedBytes)}</strong>. A visitor
+              who scrolls the whole page downloads about this much, and every download counts toward
+              the Blob store's monthly transfer allowance.
+            </p>
+          )}
           {store.storage === 'local' && (
             <p className={styles.intro}>
               Local mode: files are saved on this computer in <code>.cms/</code>, not on the live

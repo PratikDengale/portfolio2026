@@ -1,11 +1,15 @@
 import { useState } from 'react'
-import { IMAGE_TYPES, LOGO_TYPES, MAX_UPLOAD_BYTES, VIDEO_TYPES } from '../../shared/mediaRules'
+import {
+  IMAGE_TYPES,
+  LARGE_VIDEO_BYTES,
+  LOGO_TYPES,
+  MAX_IMAGE_BYTES,
+  MAX_VIDEO_BYTES,
+  VIDEO_TYPES,
+} from '../../shared/mediaRules'
+import { fileSize } from './fileSize'
 import styles from './SlotCard.module.css'
 
-const fileSize = (bytes) =>
-  bytes < 1024 * 1024
-    ? `${Math.max(1, Math.round(bytes / 1024))} KB`
-    : `${(bytes / 1024 / 1024).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)} MB`
 
 // Temporary URLs for previewing files that haven't been uploaded yet, one per
 // file for as long as the file is staged anywhere.
@@ -21,8 +25,10 @@ function fieldValue(saved, staged) {
   return staged ? previewUrl(staged) : null
 }
 
-function FileField({ label, types, value, staged, disabled, onChange }) {
+function FileField({ label, types, value, savedSize, staged, disabled, onChange }) {
   const [error, setError] = useState(null)
+  const isVideo = types === VIDEO_TYPES
+  const limit = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES
 
   const choose = (event) => {
     const file = event.target.files[0]
@@ -32,8 +38,10 @@ function FileField({ label, types, value, staged, disabled, onChange }) {
       const allowed = types.map((type) => type.split('/')[1].replace('+xml', '').toUpperCase())
       return setError(`Use ${allowed.join(', ')}.`)
     }
-    if (file.size > MAX_UPLOAD_BYTES) {
-      return setError(`Too large (${fileSize(file.size)}). The limit is ${fileSize(MAX_UPLOAD_BYTES)}.`)
+    if (file.size > limit) {
+      return setError(
+        `Too large (${fileSize(file.size)}). The limit is ${fileSize(limit)}: compress it for the web first.`,
+      )
     }
     setError(null)
     onChange(file)
@@ -45,14 +53,19 @@ function FileField({ label, types, value, staged, disabled, onChange }) {
       : staged === null
         ? 'Will be removed'
         : value
-          ? 'Published'
+          ? `Published${savedSize ? ` · ${fileSize(savedSize)}` : ''}`
           : 'Empty'
+  const size = staged instanceof File ? staged.size : staged === undefined ? savedSize : 0
+  const heavy = isVideo && size > LARGE_VIDEO_BYTES
 
   return (
     <div className={styles.field}>
       <div className={styles.fieldText}>
         <span className={`mono-label ${styles.fieldLabel}`}>{label}</span>
         <span className={styles.fieldState}>{state}</span>
+        {heavy && !error && (
+          <span className={styles.fieldWarning}>Heavy: every visitor downloads this. Aim for under {fileSize(LARGE_VIDEO_BYTES)}.</span>
+        )}
         {error && (
           <span className={styles.fieldError} role="alert">
             {error}
@@ -120,6 +133,7 @@ export default function SlotCard({ slot, saved, changes, disabled, onStage, onRe
           label="Video"
           types={VIDEO_TYPES}
           value={video}
+          savedSize={saved?.videoSize}
           staged={changes?.video}
           disabled={disabled}
           onChange={(file) => onStage('video', file)}
@@ -129,6 +143,7 @@ export default function SlotCard({ slot, saved, changes, disabled, onStage, onRe
         label={slot.accepts === 'video' ? 'Poster / still' : isLogo ? 'Logo' : 'Image'}
         types={isLogo ? LOGO_TYPES : IMAGE_TYPES}
         value={image}
+        savedSize={saved?.imageSize}
         staged={changes?.image}
         disabled={disabled}
         onChange={(file) => onStage('image', file)}

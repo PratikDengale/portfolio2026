@@ -109,3 +109,8 @@
   padding: 0 var(--gutter);
   color: var(--muted);
 }
+
+.weight {
+  color: var(--ink);
+  font-weight: 500;
+}

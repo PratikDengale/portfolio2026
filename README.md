@@ -17,7 +17,8 @@ Every video, image and logo on the home page is a slot that can be filled, repla
 
 Changes are staged in the browser and nothing is uploaded or shown on the site until **Publish**. The live site picks up a publish within a minute or two.
 
-- Video: MP4 (H.264) or WebM. Images: JPG, PNG, WebP or AVIF. Logos can also be SVG. 200 MB per file.
+- Video: MP4 (H.264) or WebM, up to 25 MB (flagged above 10 MB). Images: JPG, PNG, WebP or AVIF, up to 5 MB. Logos can also be SVG.
+- Every visitor downloads the published media, and on Vercel every download counts toward the Blob store's monthly data-transfer allowance. Compress for the web: a 1080p H.264 clip at 3–5 Mbit/s with no audio track is a few MB. The admin shows each file's size and the page's total.
 - A video slot takes a clip and a poster/still. The poster shows before the clip plays; a slot with only a still shows as an image.
 - Crop media to the ratio shown on each card; it is fitted with `object-fit: cover`.
 - Work tiles, service cards and the portrait have an optional caption: the small text at the bottom-left of the tile. An empty slot shows it over the placeholder; a filled slot shows text only if a caption is set.

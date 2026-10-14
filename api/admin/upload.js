@@ -1,17 +1,23 @@
 import { issueSignedToken } from '@vercel/blob'
 import { handleUpload, handleUploadPresigned } from '@vercel/blob/client'
-import { LOGO_TYPES, MAX_UPLOAD_BYTES, VIDEO_TYPES } from '../../shared/mediaRules.js'
+import {
+  isVideoPath,
+  LOGO_TYPES,
+  MAX_IMAGE_BYTES,
+  MAX_VIDEO_BYTES,
+  VIDEO_TYPES,
+} from '../../shared/mediaRules.js'
 import { denyUnlessAdmin } from '../_lib/auth.js'
 
-const rules = {
-  allowedContentTypes: [...VIDEO_TYPES, ...LOGO_TYPES],
-  maximumSizeInBytes: MAX_UPLOAD_BYTES,
-}
-
-function checkPath(pathname) {
+// What one upload may be, decided by the file's extension: videos and images
+// have separate type and size limits.
+function rulesFor(pathname) {
   if (typeof pathname !== 'string' || !pathname.startsWith('media/')) {
     throw new Error('Invalid upload path.')
   }
+  return isVideoPath(pathname)
+    ? { allowedContentTypes: VIDEO_TYPES, maximumSizeInBytes: MAX_VIDEO_BYTES }
+    : { allowedContentTypes: LOGO_TYPES, maximumSizeInBytes: MAX_IMAGE_BYTES }
 }
 
 // Files go straight from the browser to the Blob store (functions can't accept
@@ -33,7 +39,7 @@ export async function POST(request) {
         // Only used to verify upload-completed callbacks, which we don't use.
         webhookPublicKey: process.env.BLOB_WEBHOOK_PUBLIC_KEY ?? 'unused',
         getSignedToken: async (pathname) => {
-          checkPath(pathname)
+          const rules = rulesFor(pathname)
           return {
             token: await issueSignedToken({ pathname, operations: ['put'], ...rules }),
             urlOptions: { ...rules, addRandomSuffix: true },
@@ -47,10 +53,7 @@ export async function POST(request) {
     const result = await handleUpload({
       request,
       body,
-      onBeforeGenerateToken: async (pathname) => {
-        checkPath(pathname)
-        return { ...rules, addRandomSuffix: true }
-      },
+      onBeforeGenerateToken: async (pathname) => ({ ...rulesFor(pathname), addRandomSuffix: true }),
     })
     return Response.json(result)
   } catch (error) {

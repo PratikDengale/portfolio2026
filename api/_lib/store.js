@@ -113,7 +113,8 @@ export async function removeMedia(urls) {
 }
 
 // Rebuilds a content document from untrusted input, keeping only what the
-// site understands: per slot an optional video, image, caption and name.
+// site understands: per slot an optional video and image (with their sizes),
+// caption and name.
 export function sanitizeContent(input) {
   const invalid = (message) => new StoreError(message, 400)
   const entries = Object.entries(input?.media ?? {})
@@ -127,6 +128,11 @@ export function sanitizeContent(input) {
       if (!value?.[field]) continue
       if (!isOwnMedia(value[field])) throw invalid(`Slot "${slot}" points at a file outside the media store.`)
       entry[field] = value[field]
+    }
+    // File sizes, as reported by the admin when it uploaded them.
+    for (const field of ['videoSize', 'imageSize']) {
+      const size = value?.[field]
+      if (entry[field.replace('Size', '')] && Number.isSafeInteger(size) && size > 0) entry[field] = size
     }
     for (const field of ['name', 'caption']) {
       const text = typeof value?.[field] === 'string' ? value[field].trim().slice(0, 80) : ''
