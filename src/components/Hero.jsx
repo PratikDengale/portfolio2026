@@ -27,6 +27,9 @@ function splitKeepingKerning(element) {
   return split
 }
 
+// Seconds the showreel plays alone before the hero text and bar animate in.
+const INTRO_DELAY = 1.5
+
 export default function Hero({ menuOpen, onOpenMenu }) {
   const { name, roles } = site
   const { reel } = useContent()
@@ -41,9 +44,10 @@ export default function Hero({ menuOpen, onOpenMenu }) {
   const playIntro = useRef(null)
   const wordmark = useFitText(name, { alignStart: firstRole, alignEnd: lastRole, onFitted: playIntro })
 
-  // Intro: the wordmark's letters come into focus one after another (from
+  // Intro: the showreel plays on its own first; after INTRO_DELAY the
+  // wordmark's letters come into focus from the centre outwards (from
   // blurred, transparent and lower), then the roles and the top bar follow.
-  // It starts once the wordmark has its font and size.
+  // The clock starts once the wordmark has its font and size.
   useGSAP(
     () => {
       gsap.matchMedia().add(MOTION_OK, (context) => {
@@ -53,13 +57,13 @@ export default function Hero({ menuOpen, onOpenMenu }) {
         const start = context.add(() => {
           const split = splitKeepingKerning(wordmark.current)
           gsap
-            .timeline({ defaults: { ease: EASE }, onComplete: () => split.revert() })
+            .timeline({ delay: INTRO_DELAY, defaults: { ease: EASE }, onComplete: () => split.revert() })
             .from(split.chars, {
               yPercent: 35,
               autoAlpha: 0,
               filter: 'blur(16px)',
               duration: 1.3,
-              stagger: 0.05,
+              stagger: { each: 0.06, from: 'center' },
             })
             .to(roles, { autoAlpha: 1, duration: 1, stagger: 0.08 }, 0.5)
             .from(roles, { y: 16, duration: 1, stagger: 0.08 }, 0.5)
