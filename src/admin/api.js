@@ -17,7 +17,9 @@ async function request(path, init) {
   }
   if (!response.ok) {
     const detail = data.error ?? text.replace(/<[^>]+>/g, ' ').trim().slice(0, 300)
-    throw new Error(detail || `Request failed (HTTP ${response.status}).`)
+    throw Object.assign(new Error(detail || `Request failed (HTTP ${response.status}).`), {
+      status: response.status,
+    })
   }
   return data
 }
@@ -94,8 +96,21 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 export async function waitForVideo(videoId, onProgress) {
   const started = Date.now()
   let missingMp4 = 0
+  let lostContact = 0
   for (;;) {
-    const status = await request(`/api/admin/video?id=${encodeURIComponent(videoId)}`)
+    let status
+    try {
+      status = await request(`/api/admin/video?id=${encodeURIComponent(videoId)}`)
+      lostContact = 0
+    } catch (error) {
+      // A dropped connection or a server hiccup: keep waiting, a few times.
+      const transient = error instanceof TypeError || error.status >= 500
+      if (!transient || ++lostContact > 6) {
+        throw new Error(`Lost contact while waiting for Bunny: ${error.message}`, { cause: error })
+      }
+      await wait(5000)
+      continue
+    }
     if (status.state === 'ready') {
       return { video: status.url, videoId, thumbnail: status.thumbnail, videoSize: status.size ?? undefined }
     }
@@ -115,7 +130,7 @@ export async function waitForVideo(videoId, onProgress) {
     if (Date.now() - started > 60 * 60 * 1000) {
       throw new Error('Bunny has been encoding for over an hour. Press Publish again later to carry on waiting.')
     }
-    onProgress(status.progress ?? 0)
+    onProgress(status.progress ?? 0, status.detail)
     await wait(4000)
   }
 }

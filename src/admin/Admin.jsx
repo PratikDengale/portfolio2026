@@ -101,8 +101,10 @@ export default function Admin() {
       for (const { file } of files) {
         const done = uploaded.current.get(file)
         if (done.video || !done.videoId) continue
-        const ready = await waitForVideo(done.videoId, (percent) =>
-          setProgress(`Bunny is encoding ${file.name} (${percent}%). Keep this page open.`),
+        const ready = await waitForVideo(done.videoId, (percent, detail) =>
+          setProgress(
+            `Bunny is encoding ${file.name} (${percent}%)${detail ? `, waiting for its MP4: ${detail}` : ''}. Keep this page open.`,
+          ),
         )
         uploaded.current.set(file, ready)
       }

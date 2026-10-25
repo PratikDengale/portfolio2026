@@ -72,26 +72,43 @@ async function ensureOk(response, service, action) {
   throw new Error(`${service} could not ${action} (HTTP ${response.status}).${hint}`)
 }
 
+// Every call to Bunny has a time limit, so a stalled connection becomes an
+// error the admin can show instead of a request that never answers.
+async function bunnyFetch(url, init, service, seconds) {
+  try {
+    return await fetch(url, { ...init, signal: AbortSignal.timeout(seconds * 1000) })
+  } catch (error) {
+    if (error.name === 'TimeoutError') throw new Error(`${service} did not answer within ${seconds} s.`)
+    throw new Error(`Could not reach ${service}: ${error.message}`)
+  }
+}
+
 function storageRequest(method, filePath, init = {}) {
   const { storageApi, zone, storageKey } = bunny()
-  return fetch(`${storageApi}/${zone}/${filePath}`, {
-    method,
-    ...init,
-    headers: { AccessKey: storageKey, ...init.headers },
-  })
+  return bunnyFetch(
+    `${storageApi}/${zone}/${filePath}`,
+    { method, ...init, headers: { AccessKey: storageKey, ...init.headers } },
+    'Bunny Storage',
+    20,
+  )
 }
 
 async function streamRequest(method, suffix, action, body) {
   const { streamApi, libraryId, streamKey } = bunny()
-  const response = await fetch(`${streamApi}/library/${libraryId}/videos${suffix}`, {
-    method,
-    headers: {
-      AccessKey: streamKey,
-      Accept: 'application/json',
-      ...(body ? { 'Content-Type': 'application/json' } : {}),
+  const response = await bunnyFetch(
+    `${streamApi}/library/${libraryId}/videos${suffix}`,
+    {
+      method,
+      headers: {
+        AccessKey: streamKey,
+        Accept: 'application/json',
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
     },
-    body: body ? JSON.stringify(body) : undefined,
-  })
+    'Bunny Stream',
+    10,
+  )
   return ensureOk(response, 'Bunny Stream', action)
 }
 
@@ -197,26 +214,40 @@ export async function videoStatus(videoId, referer) {
     .map(Number)
     .filter((height) => height <= 720)
     .sort((a, b) => b - a)
-  const checked = []
-  for (const height of new Set([...listed, 720, 480, 360, 240])) {
-    const url = `${streamCdn}/${videoId}/play_${height}p.mp4`
-    const head = await fetch(`${url}?check=${Date.now()}`, {
-      method: 'HEAD',
-      headers: referer ? { Referer: referer } : {},
-    })
-    if (head.ok) {
-      return {
-        state: 'ready',
-        url,
-        size: Number(head.headers.get('content-length')) || null,
-        thumbnail: `${streamCdn}/${videoId}/${video.thumbnailFileName || 'thumbnail.jpg'}`,
+  // Ask for the first byte of each candidate MP4 at once, each with a short
+  // time limit; the reply's Content-Range carries the full size.
+  const heights = [...new Set([...listed, 720, 480, 360, 240])]
+  const results = await Promise.all(
+    heights.map(async (height) => {
+      const url = `${streamCdn}/${videoId}/play_${height}p.mp4`
+      try {
+        const response = await fetch(url, {
+          headers: { Range: 'bytes=0-0', ...(referer ? { Referer: referer } : {}) },
+          signal: AbortSignal.timeout(8000),
+        })
+        await response.body?.cancel()
+        const size =
+          Number(response.headers.get('content-range')?.split('/')[1]) ||
+          Number(response.headers.get('content-length')) ||
+          null
+        return { height, url, ok: response.ok, note: `HTTP ${response.status}`, size }
+      } catch (error) {
+        return { height, url, ok: false, note: error.name === 'TimeoutError' ? 'no answer in 8 s' : error.message }
       }
+    }),
+  )
+  const found = results.find((result) => result.ok)
+  if (found) {
+    return {
+      state: 'ready',
+      url: found.url,
+      size: found.size,
+      thumbnail: `${streamCdn}/${videoId}/${video.thumbnailFileName || 'thumbnail.jpg'}`,
     }
-    checked.push(`play_${height}p.mp4 → HTTP ${head.status}`)
   }
-  const detail = checked.join(', ')
+  const detail = results.map(({ height, note }) => `play_${height}p.mp4 → ${note}`).join(', ')
   // Refused rather than missing: Bunny's security settings block the file.
-  if (checked.some((line) => / (401|403)$/.test(line))) return { state: 'blocked', detail }
+  if (results.some(({ note }) => /HTTP (401|403)/.test(note))) return { state: 'blocked', detail }
   const uploaded = Date.parse(video.dateUploaded ? `${video.dateUploaded.replace(/Z?$/, '')}Z` : '')
   if (Date.now() - uploaded < MP4_GRACE_MS) return { state: 'processing', progress: 100, detail }
   // Encoded, but no MP4 at all: MP4 Fallback was off when it was uploaded.
