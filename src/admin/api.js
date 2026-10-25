@@ -102,9 +102,14 @@ export async function waitForVideo(videoId, onProgress) {
     if (status.state === 'failed') {
       throw new Error('Bunny could not encode this video. Export it again as an H.264 MP4 and re-upload it.')
     }
-    if (status.state === 'no-mp4' && ++missingMp4 > 15) {
+    if (status.state === 'blocked') {
       throw new Error(
-        'Bunny encoded the video but made no MP4 file. Turn on MP4 Fallback in the Stream library’s encoding settings, then choose the video again.',
+        `Bunny encoded the video but refused to serve its MP4 (${status.detail}). In the Stream library’s security settings, make sure this site’s domain is an allowed domain and direct URL access isn’t blocked, then press Publish again.`,
+      )
+    }
+    if (status.state === 'no-mp4' && ++missingMp4 > 3) {
+      throw new Error(
+        `Bunny encoded the video but made no MP4 file (${status.detail}). Turn on MP4 Fallback in the Stream library’s encoding settings, then choose the video again.`,
       )
     }
     if (Date.now() - started > 60 * 60 * 1000) {

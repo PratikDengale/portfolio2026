@@ -177,10 +177,16 @@ export async function createVideoUpload(title) {
 const FINISHED = 4
 const FAILED = new Set([5, 6])
 
+// Bunny can write the MP4 copies a little after it reports the video as
+// finished, so a missing MP4 counts as still processing for this long after
+// the upload.
+const MP4_GRACE_MS = 20 * 60 * 1000
+
 // Where a video is in Bunny's encoding, and once finished, its 720p MP4 (or
 // the largest smaller one, for originals below 720p) plus the thumbnail Bunny
-// generated.
-export async function videoStatus(videoId) {
+// generated. `referer` is the site's own address, sent along when checking
+// the MP4 so Bunny's allowed-domains protection lets the check through.
+export async function videoStatus(videoId, referer) {
   if (!GUID.test(videoId)) throw new StoreError('Invalid video id.', 400)
   const video = await (await streamRequest('GET', `/${videoId}`, 'look up the video')).json()
   if (FAILED.has(video.status)) return { state: 'failed' }
@@ -191,9 +197,13 @@ export async function videoStatus(videoId) {
     .map(Number)
     .filter((height) => height <= 720)
     .sort((a, b) => b - a)
-  for (const height of listed.length ? listed : [720, 480, 360, 240]) {
+  const checked = []
+  for (const height of new Set([...listed, 720, 480, 360, 240])) {
     const url = `${streamCdn}/${videoId}/play_${height}p.mp4`
-    const head = await fetch(`${url}?check=${Date.now()}`, { method: 'HEAD' })
+    const head = await fetch(`${url}?check=${Date.now()}`, {
+      method: 'HEAD',
+      headers: referer ? { Referer: referer } : {},
+    })
     if (head.ok) {
       return {
         state: 'ready',
@@ -202,10 +212,15 @@ export async function videoStatus(videoId) {
         thumbnail: `${streamCdn}/${videoId}/${video.thumbnailFileName || 'thumbnail.jpg'}`,
       }
     }
+    checked.push(`play_${height}p.mp4 → HTTP ${head.status}`)
   }
-  // Encoded, but the MP4 isn't there (yet): MP4 Fallback may be off, or the
-  // file is still being written.
-  return { state: 'no-mp4' }
+  const detail = checked.join(', ')
+  // Refused rather than missing: Bunny's security settings block the file.
+  if (checked.some((line) => / (401|403)$/.test(line))) return { state: 'blocked', detail }
+  const uploaded = Date.parse(video.dateUploaded ? `${video.dateUploaded.replace(/Z?$/, '')}Z` : '')
+  if (Date.now() - uploaded < MP4_GRACE_MS) return { state: 'processing', progress: 100, detail }
+  // Encoded, but no MP4 at all: MP4 Fallback was off when it was uploaded.
+  return { state: 'no-mp4', detail }
 }
 
 // ---- Validation and clean-up ----------------------------------------------

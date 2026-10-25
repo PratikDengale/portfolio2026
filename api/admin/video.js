@@ -37,7 +37,9 @@ export async function GET(request) {
   if (denied) return denied
   try {
     requireBunny()
-    return json(await videoStatus(new URL(request.url).searchParams.get('id') ?? ''))
+    const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host')
+    const id = new URL(request.url).searchParams.get('id') ?? ''
+    return json(await videoStatus(id, host ? `https://${host}/` : undefined))
   } catch (error) {
     return failure(error)
   }
