@@ -16,6 +16,7 @@
 
 .bar {
   position: absolute;
+  z-index: 2; /* above the frosted strip */
   top: 0;
   left: 0;
   right: 0;

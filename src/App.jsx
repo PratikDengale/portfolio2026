@@ -2,6 +2,7 @@ import { useLayoutEffect, useState } from 'react'
 import About from './components/About'
 import ContentProvider from './components/ContentProvider'
 import Footer from './components/Footer'
+import Frost from './components/Frost'
 import Hero from './components/Hero'
 import MenuOverlay from './components/MenuOverlay'
 import SelectedWork from './components/SelectedWork'
@@ -28,6 +29,7 @@ export default function App() {
         <About />
       </main>
       <Footer />
+      <Frost />
       <MenuOverlay open={menuOpen} onClose={() => setMenuOpen(false)} />
     </ContentProvider>
   )

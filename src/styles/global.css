@@ -19,6 +19,7 @@
   --section: 160px; /* space above a section */
   --section-first: 120px; /* space between hero and first section */
   --bar-pad: 28px; /* top bar vertical padding */
+  --frost-height: 96px; /* the fixed frosted strip at the top */
   --font-sans: 'Geist Variable', 'Geist', system-ui, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, monospace;
 }
@@ -86,6 +87,11 @@ html:has(dialog[open]) {
   html {
     scroll-behavior: smooth;
   }
+}
+
+/* Section links land below the frosted strip, not under it. */
+html {
+  scroll-padding-top: var(--frost-height);
 }
 
 h1,
