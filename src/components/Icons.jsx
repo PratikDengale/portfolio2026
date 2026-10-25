@@ -32,3 +32,39 @@ export function WhatsAppIcon({ size = 24 }) {
     </svg>
   )
 }
+
+// Video controls: drawn on a 20-unit grid with the same thin strokes as the
+// menu button, filled where a shape reads better solid.
+const controlIcon = (children) => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+    {children}
+  </svg>
+)
+
+export const PlayIcon = () => controlIcon(<path d="M6 4.2v11.6L15.6 10z" fill="currentColor" stroke="none" />)
+
+export const PauseIcon = () =>
+  controlIcon(
+    <>
+      <rect x="5.5" y="4.5" width="2.6" height="11" fill="currentColor" stroke="none" />
+      <rect x="11.9" y="4.5" width="2.6" height="11" fill="currentColor" stroke="none" />
+    </>,
+  )
+
+const speaker = <path d="M3.5 7.6h2.8L10 4.6v10.8l-3.7-3H3.5z" fill="currentColor" stroke="none" />
+
+export const SoundOnIcon = () =>
+  controlIcon(
+    <>
+      {speaker}
+      <path d="M12.6 7.4a3.6 3.6 0 0 1 0 5.2M14.8 5.3a6.6 6.6 0 0 1 0 9.4" strokeLinecap="round" />
+    </>,
+  )
+
+export const SoundOffIcon = () =>
+  controlIcon(
+    <>
+      {speaker}
+      <path d="M12.8 7.8l4.4 4.4M17.2 7.8l-4.4 4.4" strokeLinecap="round" />
+    </>,
+  )

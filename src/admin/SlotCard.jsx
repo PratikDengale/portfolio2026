@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
+  EXTENSIONS,
   IMAGE_TYPES,
-  LARGE_VIDEO_BYTES,
   LOGO_TYPES,
   MAX_IMAGE_BYTES,
   MAX_VIDEO_BYTES,
@@ -9,7 +9,6 @@ import {
 } from '../../shared/mediaRules'
 import { fileSize } from './fileSize'
 import styles from './SlotCard.module.css'
-
 
 // Temporary URLs for previewing files that haven't been uploaded yet, one per
 // file for as long as the file is staged anywhere.
@@ -35,13 +34,11 @@ function FileField({ label, types, value, savedSize, staged, disabled, onChange 
     event.target.value = ''
     if (!file) return
     if (!types.includes(file.type)) {
-      const allowed = types.map((type) => type.split('/')[1].replace('+xml', '').toUpperCase())
+      const allowed = types.map((type) => EXTENSIONS[type].slice(1).toUpperCase())
       return setError(`Use ${allowed.join(', ')}.`)
     }
     if (file.size > limit) {
-      return setError(
-        `Too large (${fileSize(file.size)}). The limit is ${fileSize(limit)}: compress it for the web first.`,
-      )
+      return setError(`Too large (${fileSize(file.size)}). The limit is ${fileSize(limit)}.`)
     }
     setError(null)
     onChange(file)
@@ -55,17 +52,12 @@ function FileField({ label, types, value, savedSize, staged, disabled, onChange 
         : value
           ? `Published${savedSize ? ` · ${fileSize(savedSize)}` : ''}`
           : 'Empty'
-  const size = staged instanceof File ? staged.size : staged === undefined ? savedSize : 0
-  const heavy = isVideo && size > LARGE_VIDEO_BYTES
 
   return (
     <div className={styles.field}>
       <div className={styles.fieldText}>
         <span className={`mono-label ${styles.fieldLabel}`}>{label}</span>
         <span className={styles.fieldState}>{state}</span>
-        {heavy && !error && (
-          <span className={styles.fieldWarning}>Heavy: every visitor downloads this. Aim for under {fileSize(LARGE_VIDEO_BYTES)}.</span>
-        )}
         {error && (
           <span className={styles.fieldError} role="alert">
             {error}
@@ -101,6 +93,8 @@ function FileField({ label, types, value, savedSize, staged, disabled, onChange 
 export default function SlotCard({ slot, saved, changes, disabled, onStage, onRevert }) {
   const video = fieldValue(saved?.video, changes?.video)
   const image = fieldValue(saved?.image, changes?.image)
+  // Bunny's own frame stands in for a poster until one is uploaded.
+  const poster = image ?? (changes?.video === undefined ? saved?.thumbnail : null) ?? undefined
   const isLogo = slot.accepts === 'logo'
   const name = changes?.name ?? saved?.name ?? ''
   const caption = changes?.caption ?? saved?.caption ?? ''
@@ -110,7 +104,7 @@ export default function SlotCard({ slot, saved, changes, disabled, onStage, onRe
       <div className={isLogo ? styles.logoPreview : styles.preview}>
         {video ? (
           // The key remounts the player when the file changes.
-          <video key={video} src={video} poster={image ?? undefined} muted loop playsInline controls preload="metadata" />
+          <video key={video} src={video} poster={poster} muted loop playsInline controls preload="metadata" />
         ) : image ? (
           <img src={image} alt="" />
         ) : (

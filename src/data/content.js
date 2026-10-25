@@ -85,9 +85,10 @@ export const slots = [
 // Merges the saved CMS document (see api/content.js) into the page structure.
 export function resolveContent(manifest) {
   const entry = (slot) => manifest?.media?.[slot] ?? {}
+  // A video's poster is the uploaded still, or else the frame Bunny picked.
   const clip = (slot) => ({
     src: entry(slot).video ?? null,
-    poster: entry(slot).image ?? null,
+    poster: entry(slot).image ?? entry(slot).thumbnail ?? null,
     caption: entry(slot).caption ?? null,
   })
 

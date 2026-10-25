@@ -25,6 +25,14 @@
   padding: var(--bar-pad) var(--gutter);
 }
 
+.reelControls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* Hold the bar's height whether or not the buttons are there. */
+  min-height: 44px;
+}
+
 .bottom {
   position: absolute;
   left: 0;

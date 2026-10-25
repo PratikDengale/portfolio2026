@@ -12,7 +12,15 @@ export default function Services() {
       <ul className={styles.cards}>
         {services.map(({ slot, title, media, src, poster, caption }) => (
           <li key={slot} className={styles.card}>
-            <Media ratio="4/3" label={media} alt={title} src={src} poster={poster} caption={caption} />
+            <Media
+              id={slot}
+              ratio="4/3"
+              label={media}
+              alt={title}
+              src={src}
+              poster={poster}
+              caption={caption}
+            />
             <h3 className={styles.title}>{title}</h3>
           </li>
         ))}

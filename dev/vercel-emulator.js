@@ -9,8 +9,8 @@ import { LOCAL_DIR, LOCAL_URL } from '../api/_lib/store.js'
 
 // Development only. Runs middleware.js and the api/ functions inside Vite's
 // dev and preview servers so `npm run dev` behaves like the Vercel deployment,
-// and stands in for the Blob store with files in .cms/ when no Blob token is
-// set. None of this is deployed.
+// and stands in for bunny.net with files in .cms/ when no Bunny settings are
+// present. None of this is deployed.
 
 const TYPES = {
   '.mp4': 'video/mp4',
@@ -62,7 +62,7 @@ async function callFunction(root, load, pathname, request) {
   return handler(request)
 }
 
-// Local stand-in for a Blob client upload: PUT /_cms/upload?path=media/…
+// Local stand-in for a video upload to Bunny: PUT /_cms/upload?path=media/…
 async function saveLocalUpload(load, url, request) {
   const { isAuthenticated } = await load('api/_lib/auth.js')
   if (!(await isAuthenticated(request))) return Response.json({ error: 'Not signed in' }, { status: 401 })
@@ -142,7 +142,7 @@ export default function vercelEmulator() {
   return {
     name: 'vercel-emulator',
     config(_, { mode }) {
-      // Make .env.local (ADMIN_PASSWORD, BLOB_READ_WRITE_TOKEN…) visible to the functions.
+      // Make .env.local (ADMIN_PASSWORD, BUNNY_…) visible to the functions.
       for (const [name, value] of Object.entries(loadEnv(mode, process.cwd(), ''))) {
         process.env[name] ??= value
       }

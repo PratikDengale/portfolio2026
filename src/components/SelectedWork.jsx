@@ -30,7 +30,7 @@ export default function SelectedWork() {
         {columns.map((column, i) => (
           <div key={i} className={styles.column}>
             {column.map(({ slot, ...item }) => (
-              <Media key={slot} {...item} />
+              <Media key={slot} id={slot} {...item} />
             ))}
           </div>
         ))}

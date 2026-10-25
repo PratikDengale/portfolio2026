@@ -1,10 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
 import SectionHead from '../components/SectionHead'
 import { site, slots } from '../data/content'
-import { loadContent, saveContent, uploadFile } from './api'
+import {
+  loadContent,
+  saveContent,
+  uploadBunnyVideo,
+  uploadImage,
+  uploadLocalVideo,
+  waitForVideo,
+} from './api'
 import { fileSize } from './fileSize'
 import SlotCard from './SlotCard'
 import styles from './Admin.module.css'
+
+// Content-document fields that belong to each kind of file, removed together.
+const FIELDS = {
+  video: ['video', 'videoId', 'thumbnail', 'videoSize'],
+  image: ['image', 'imageSize'],
+}
 
 const groups = slots.reduce((byGroup, slot) => {
   ;(byGroup[slot.group] ??= []).push(slot)
@@ -15,17 +28,17 @@ const groups = slots.reduce((byGroup, slot) => {
 // to upload, null to remove, or a string for a name or caption) and nothing reaches the
 // live site until Publish.
 export default function Admin() {
-  const [store, setStore] = useState(null) // { media, etag, storage, upload } as last saved
+  const [store, setStore] = useState(null) // { media, etag, storage } as last saved
   const [draft, setDraft] = useState({})
   const [progress, setProgress] = useState(null) // message while publishing
   const [notice, setNotice] = useState(null) // { kind: 'error' | 'ok', text }
-  const uploaded = useRef(new WeakMap()) // File → URL, so a retry doesn't re-upload
+  // File → what is known about its upload (Bunny id, then URL and size), so a
+  // retried Publish carries on instead of uploading again.
+  const uploaded = useRef(new WeakMap())
 
   useEffect(() => {
     loadContent()
-      .then(({ content, etag, storage, upload }) =>
-        setStore({ media: content.media ?? {}, etag, storage, upload }),
-      )
+      .then(({ content, etag, storage }) => setStore({ media: content.media ?? {}, etag, storage }))
       .catch((error) => setNotice({ kind: 'error', text: error.message }))
   }, [])
 
@@ -70,15 +83,28 @@ export default function Admin() {
         .filter(([, value]) => value instanceof File)
         .map(([field, file]) => ({ slot, field, file })),
     )
+    const bunny = store.storage === 'bunny'
     try {
-      for (const [i, { slot, file }] of files.entries()) {
+      for (const [i, { slot, field, file }] of files.entries()) {
         if (uploaded.current.has(file)) continue
         const label = `Uploading ${i + 1} of ${files.length}: ${file.name}`
         setProgress(label)
-        const url = await uploadFile(store.upload, slot, file, (percent) =>
-          setProgress(`${label} (${percent}%)`),
+        if (field === 'image') uploaded.current.set(file, await uploadImage(slot, file))
+        else if (!bunny) uploaded.current.set(file, await uploadLocalVideo(slot, file))
+        else {
+          const videoId = await uploadBunnyVideo(slot, file, (percent) => setProgress(`${label} (${percent}%)`))
+          uploaded.current.set(file, { videoId })
+        }
+      }
+
+      // Bunny encodes each new video before it can be published.
+      for (const { file } of files) {
+        const done = uploaded.current.get(file)
+        if (done.video || !done.videoId) continue
+        const ready = await waitForVideo(done.videoId, (percent) =>
+          setProgress(`Bunny is encoding ${file.name} (${percent}%). Keep this page open.`),
         )
-        uploaded.current.set(file, url)
+        uploaded.current.set(file, ready)
       }
 
       setProgress('Publishing…')
@@ -87,13 +113,12 @@ export default function Admin() {
         const entry = { ...media[slot] }
         for (const [field, value] of Object.entries(changes)) {
           if (value instanceof File) {
-            entry[field] = uploaded.current.get(value)
-            entry[`${field}Size`] = value.size
+            for (const key of FIELDS[field]) delete entry[key]
+            Object.assign(entry, uploaded.current.get(value))
           } else if (value) {
             entry[field] = value
           } else {
-            delete entry[field]
-            delete entry[`${field}Size`]
+            for (const key of FIELDS[field] ?? [field]) delete entry[key]
           }
         }
         if (Object.keys(entry).length) media[slot] = entry
@@ -153,9 +178,11 @@ export default function Admin() {
       {store && (
         <main>
           <p className={styles.intro}>
-            Choose files for any slot, then Publish to put them on the site. Video: MP4 (H.264) or
-            WebM. Images: JPG, PNG, WebP or AVIF; logos can also be SVG. Keep clips short and
-            compressed, since visitors download them as the page loads.
+            Choose files for any slot, then Publish to put them on the site. Videos: MP4, MOV or
+            WebM up to 2 GB. bunny.net re-encodes them to 720p for the site, so upload a
+            good-quality export with sound if the clip has any; encoding takes a few minutes, so
+            keep this page open until Publish finishes. Images: JPG, PNG, WebP or AVIF up to 4 MB;
+            logos can also be SVG. Without a poster, a video shows a frame Bunny picks.
           </p>
           <p className={styles.intro}>
             A caption is the small text at the bottom-left of a tile. An empty slot shows its
@@ -165,8 +192,8 @@ export default function Admin() {
           {publishedBytes > 0 && (
             <p className={styles.intro}>
               Published media: <strong className={styles.weight}>{fileSize(publishedBytes)}</strong>. A visitor
-              who scrolls the whole page downloads about this much, and every download counts toward
-              the Blob store's monthly transfer allowance.
+              who scrolls the whole page downloads about this much, and bunny.net bills per GB
+              delivered.
             </p>
           )}
           {store.storage === 'local' && (
@@ -194,7 +221,7 @@ export default function Admin() {
             </section>
           ))}
           <p className={`mono-label ${styles.build}`}>
-            Build {import.meta.env.VITE_BUILD} · Storage {store.storage} · Upload {store.upload}
+            Build {import.meta.env.VITE_BUILD} · Storage {store.storage}
           </p>
         </main>
       )}

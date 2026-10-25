@@ -52,3 +52,31 @@
   line-height: 1.4;
   pointer-events: none;
 }
+
+/* Video controls, bottom-right. On devices with a pointer they appear on hover
+   or keyboard focus, and stay while the video is paused or has sound; on
+   touch screens they are always shown. */
+.controls {
+  position: absolute;
+  right: 6px;
+  bottom: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.tile:hover .controls,
+.tile:focus-within .controls,
+.tile[data-engaged] .controls {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .controls {
+    opacity: 1;
+  }
+}
+
+/* Keep a caption clear of the controls. */
+.withControls .caption {
+  padding-right: 100px;
+}

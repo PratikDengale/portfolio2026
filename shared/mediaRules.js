@@ -1,15 +1,33 @@
-// Upload rules shared by the admin UI (client-side checks) and the upload API
-// (enforced in the upload permission).
-export const VIDEO_TYPES = ['video/mp4', 'video/webm']
+// Upload rules shared by the admin UI (client-side checks) and the API.
+export const VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm']
 export const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif']
 export const LOGO_TYPES = [...IMAGE_TYPES, 'image/svg+xml']
 
-// Every visitor downloads these files, and every download counts toward the
-// Blob store's monthly transfer allowance, so the limits are set for the web
-// rather than for masters: a well-encoded 1080p clip is a few MB.
-export const MAX_VIDEO_BYTES = 25 * 1024 * 1024
-export const MAX_IMAGE_BYTES = 5 * 1024 * 1024
-// Above this a video still uploads, but the admin flags it as heavy.
-export const LARGE_VIDEO_BYTES = 10 * 1024 * 1024
+// Videos go to Bunny Stream, which re-encodes them to 720p for the site, so
+// the upload can be a good-quality master.
+export const MAX_VIDEO_BYTES = 2 * 1024 * 1024 * 1024
+// Images pass through a Vercel function, which accepts request bodies of up
+// to 4.5 MB.
+export const MAX_IMAGE_BYTES = 4 * 1024 * 1024
 
-export const isVideoPath = (pathname) => /\.(mp4|webm)$/i.test(pathname)
+export const EXTENSIONS = {
+  'video/mp4': '.mp4',
+  'video/quicktime': '.mov',
+  'video/webm': '.webm',
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'image/avif': '.avif',
+  'image/svg+xml': '.svg',
+}
+
+// Lower-case, URL-safe file name without its extension.
+export const safeBaseName = (name) =>
+  name
+    .replace(/\.[^.]*$/, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60) || 'file'
+
+export const SLOT_ID = /^[a-z0-9][a-z0-9/-]{0,63}$/

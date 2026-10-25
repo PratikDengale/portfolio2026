@@ -1,3 +1,5 @@
+import { safeBaseName } from '../../shared/mediaRules'
+
 // Calls to the admin API. A 401 means the session ended: reloading shows the
 // sign-in form.
 async function request(path, init) {
@@ -6,10 +8,26 @@ async function request(path, init) {
     window.location.reload()
     return new Promise(() => {})
   }
-  const data = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(data.error ?? `Request failed (${response.status}).`)
+  const text = await response.text()
+  let data = {}
+  try {
+    data = JSON.parse(text)
+  } catch {
+    // Not JSON (e.g. a platform error page): reported below.
+  }
+  if (!response.ok) {
+    const detail = data.error ?? text.replace(/<[^>]+>/g, ' ').trim().slice(0, 300)
+    throw new Error(detail || `Request failed (HTTP ${response.status}).`)
+  }
   return data
 }
+
+const postJson = (path, body) =>
+  request(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
 
 export const loadContent = () => request('/api/admin/content')
 
@@ -20,73 +38,79 @@ export const saveContent = (content, etag) =>
     body: JSON.stringify({ content, etag }),
   })
 
-const safeName = (name) =>
-  name
-    .toLowerCase()
-    .replace(/[^a-z0-9.]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'file'
-
-// Asks our upload endpoint for permission to send one file to the Blob store.
-// Done here rather than inside the Blob SDK, which hides the server's reason
-// for a refusal behind a generic message.
-async function requestUploadPermission(type, pathname, multipart) {
-  const response = await fetch('/api/admin/upload', {
+export async function uploadImage(slot, file) {
+  const params = new URLSearchParams({ slot, name: file.name })
+  const { url } = await request(`/api/admin/image?${params}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type, payload: { pathname, clientPayload: null, multipart } }),
+    headers: { 'Content-Type': file.type },
+    body: file,
   })
-  const text = await response.text()
-  let data = null
-  try {
-    data = JSON.parse(text)
-  } catch {
-    // Not JSON (e.g. a platform error page): reported below.
-  }
-  if (response.status === 401) {
-    window.location.reload()
-    return new Promise(() => {})
-  }
-  if (!response.ok || !data) {
-    const detail = data?.error ?? text.replace(/<[^>]+>/g, ' ').trim().slice(0, 300)
-    throw new Error(`The server refused the upload (HTTP ${response.status}): ${detail || 'no details given'}`)
-  }
-  return data
+  return { image: url, imageSize: file.size }
 }
 
-// Uploads one file for a slot and resolves to its public URL. `mode` is how
-// this deployment accepts uploads (see uploadMode in api/_lib/store.js);
-// `onProgress` receives a percentage where the storage reports one.
-export async function uploadFile(mode, slot, file, onProgress) {
-  const pathname = `media/${slot}/${safeName(file.name)}`
+// Local mode only: the dev server stores the file in .cms/.
+export async function uploadLocalVideo(slot, file) {
+  const extension = file.name.match(/\.[a-z0-9]+$/i)?.[0].toLowerCase() ?? ''
+  const target = `media/${slot}/${safeBaseName(file.name)}${extension}`
+  const { url } = await request(`/_cms/upload?path=${encodeURIComponent(target)}`, {
+    method: 'PUT',
+    body: file,
+  })
+  return { video: url, videoSize: file.size }
+}
 
-  if (mode === 'local') {
-    const { url } = await request(`/_cms/upload?path=${encodeURIComponent(pathname)}`, {
-      method: 'PUT',
-      body: file,
-    })
-    return url
+// Sends a video straight from the browser to Bunny Stream with a resumable
+// (tus) upload, using a permission signed by our server. Resolves to the
+// Bunny video id; Bunny then needs time to encode it (see waitForVideo).
+export async function uploadBunnyVideo(slot, file, onProgress) {
+  const permission = await postJson('/api/admin/video', { slot, filename: file.name })
+  const { Upload } = await import('tus-js-client')
+  await new Promise((resolve, reject) => {
+    new Upload(file, {
+      endpoint: permission.endpoint,
+      retryDelays: [0, 3000, 5000, 10000, 20000, 60000],
+      // Each upload gets its own Bunny video, so there is nothing to resume
+      // into after a reload.
+      storeFingerprintForResuming: false,
+      headers: {
+        AuthorizationSignature: permission.signature,
+        AuthorizationExpire: String(permission.expires),
+        VideoId: permission.videoId,
+        LibraryId: String(permission.libraryId),
+      },
+      metadata: { filetype: file.type, title: `${slot} · ${file.name}` },
+      onProgress: (sent, total) => onProgress(Math.round((sent / total) * 100)),
+      onError: (error) => reject(new Error(`Upload to Bunny failed: ${error.message}`)),
+      onSuccess: resolve,
+    }).start()
+  })
+  return permission.videoId
+}
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+// Polls Bunny until the video is encoded and its MP4 exists. Resolves to the
+// fields saved in the content document for that video.
+export async function waitForVideo(videoId, onProgress) {
+  const started = Date.now()
+  let missingMp4 = 0
+  for (;;) {
+    const status = await request(`/api/admin/video?id=${encodeURIComponent(videoId)}`)
+    if (status.state === 'ready') {
+      return { video: status.url, videoId, thumbnail: status.thumbnail, videoSize: status.size ?? undefined }
+    }
+    if (status.state === 'failed') {
+      throw new Error('Bunny could not encode this video. Export it again as an H.264 MP4 and re-upload it.')
+    }
+    if (status.state === 'no-mp4' && ++missingMp4 > 15) {
+      throw new Error(
+        'Bunny encoded the video but made no MP4 file. Turn on MP4 Fallback in the Stream library’s encoding settings, then choose the video again.',
+      )
+    }
+    if (Date.now() - started > 60 * 60 * 1000) {
+      throw new Error('Bunny has been encoding for over an hour. Press Publish again later to carry on waiting.')
+    }
+    onProgress(status.progress ?? 0)
+    await wait(4000)
   }
-
-  const multipart = file.size > 20 * 1024 * 1024
-  const options = {
-    access: 'public',
-    contentType: file.type || undefined,
-    multipart,
-    onUploadProgress: ({ percentage }) => onProgress(Math.round(percentage)),
-  }
-  const blobClient = await import('@vercel/blob/client')
-
-  if (mode === 'presigned') {
-    // Checked first so a refusal is reported with its reason.
-    await requestUploadPermission('blob.generate-presigned-url', pathname, multipart)
-    const blob = await blobClient.uploadPresigned(pathname, file, {
-      ...options,
-      handleUploadUrl: '/api/admin/upload',
-    })
-    return blob.url
-  }
-
-  const { clientToken } = await requestUploadPermission('blob.generate-client-token', pathname, multipart)
-  const blob = await blobClient.put(pathname, file, { ...options, token: clientToken })
-  return blob.url
 }

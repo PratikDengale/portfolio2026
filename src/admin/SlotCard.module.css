@@ -153,9 +153,3 @@
   padding-top: 12px;
   border-top: 1px solid var(--rule);
 }
-
-.fieldWarning {
-  color: #e0b25a;
-  font-size: 13px;
-  line-height: 1.3;
-}
