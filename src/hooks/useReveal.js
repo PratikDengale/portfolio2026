@@ -5,7 +5,7 @@ import { SplitText } from 'gsap/SplitText'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger, SplitText)
 
-export { gsap, useGSAP }
+export { gsap, SplitText, useGSAP }
 
 export const EASE = 'expo.out'
 // clamp() keeps the start reachable for elements near the end of the page.
@@ -14,7 +14,7 @@ export const MOTION_OK = '(prefers-reduced-motion: no-preference)'
 
 // Scroll-triggered reveals for every element marked with data-reveal:
 //   head     section head: the rule draws in from the left, the label rises
-//   media    media tile: unveiled upwards with a slight zoom-out
+//   media    media tile: comes into focus, from blurred and transparent
 //   lines    text rises line by line from behind a mask
 //   fade     rises and fades in
 //   stagger  its children rise and fade in one after another
@@ -34,27 +34,22 @@ export function useReveal() {
           .from(head.firstElementChild, { y: 14, autoAlpha: 0, duration: 1, ease: EASE }, 0.15)
       }
 
-      // The tile inside a media wrapper is replaced when the CMS content
-      // arrives, so it is looked up when the reveal runs, not before.
+      // The wrapper is animated, not the tile inside it, because the tile is
+      // replaced when the CMS content arrives.
       const media = all('media')
-      gsap.set(media, { clipPath: 'inset(100% 0% 0% 0%)' })
+      gsap.set(media, { autoAlpha: 0, filter: 'blur(24px)' })
       ScrollTrigger.batch(media, {
         start: START,
         once: true,
-        onEnter: (batch) => {
+        onEnter: (batch) =>
           gsap.to(batch, {
-            clipPath: 'inset(0% 0% 0% 0%)',
-            duration: 1.3,
-            ease: EASE,
+            autoAlpha: 1,
+            filter: 'blur(0px)',
+            duration: 1.4,
+            ease: 'power2.out',
             stagger: 0.12,
-            clearProps: 'clipPath',
-          })
-          gsap.fromTo(
-            batch.map((wrapper) => wrapper.firstElementChild),
-            { scale: 1.12 },
-            { scale: 1, duration: 1.6, ease: EASE, stagger: 0.12, clearProps: 'transform' },
-          )
-        },
+            clearProps: 'filter',
+          }),
       })
 
       for (const text of all('lines')) {

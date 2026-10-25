@@ -56,8 +56,6 @@
 
 .wordmarkWrap {
   padding: 0 var(--gutter) 6px;
-  /* Masks the wordmark as it rises in on load. */
-  overflow: hidden;
 }
 
 /* font-size and margin-left are the pre-JS fallback (calibrated for Geist 600

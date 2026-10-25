@@ -2,12 +2,30 @@ import { useRef } from 'react'
 import { site } from '../data/content'
 import { useContent } from '../hooks/useContent'
 import { useFitText } from '../hooks/useFitText'
-import { EASE, gsap, MOTION_OK, useGSAP } from '../hooks/useReveal'
+import { EASE, gsap, MOTION_OK, SplitText, useGSAP } from '../hooks/useReveal'
 import { useVideoPlayback } from '../hooks/useVideoPlayback'
 import MenuButton from './MenuButton'
 import RecDot from './RecDot'
 import VideoControls from './VideoControls'
 import styles from './Hero.module.css'
+
+// Splits the wordmark into characters without losing the font's kerning:
+// each character is nudged back to where it sat in the unsplit text, so the
+// edge-to-edge fit holds while it animates. Revert the split afterwards.
+function splitKeepingKerning(element) {
+  const text = element.firstChild
+  const range = document.createRange()
+  const lefts = []
+  for (let i = 0; i < text.length; i++) {
+    if (/\s/.test(text.data[i])) continue
+    range.setStart(text, i)
+    range.setEnd(text, i + 1)
+    lefts.push(range.getBoundingClientRect().left)
+  }
+  const split = SplitText.create(element, { type: 'chars' })
+  split.chars.forEach((char, i) => gsap.set(char, { x: lefts[i] - char.getBoundingClientRect().left }))
+  return split
+}
 
 export default function Hero({ menuOpen, onOpenMenu }) {
   const { name, roles } = site
@@ -23,18 +41,33 @@ export default function Hero({ menuOpen, onOpenMenu }) {
   const playIntro = useRef(null)
   const wordmark = useFitText(name, { alignStart: firstRole, alignEnd: lastRole, onFitted: playIntro })
 
-  // Intro: the wordmark rises out of its mask, then the roles and the top bar
-  // follow. It starts once the wordmark has its font and size.
+  // Intro: the wordmark's letters come into focus one after another (from
+  // blurred, transparent and lower), then the roles and the top bar follow.
+  // It starts once the wordmark has its font and size.
   useGSAP(
     () => {
-      gsap.matchMedia().add(MOTION_OK, () => {
-        const intro = gsap
-          .timeline({ paused: true, defaults: { ease: EASE } })
-          .from(wordmark.current, { yPercent: 105, duration: 1.4 })
-          .from(firstRole.current.parentElement.children, { y: 16, autoAlpha: 0, duration: 1, stagger: 0.08 }, 0.3)
-          .from(bar.current, { autoAlpha: 0, duration: 1 }, 0.5)
-        if (wordmark.current.hasAttribute('data-fitted')) intro.play()
-        else playIntro.current = () => intro.play()
+      gsap.matchMedia().add(MOTION_OK, (context) => {
+        const roles = firstRole.current.parentElement.children
+        gsap.set([...roles, bar.current], { autoAlpha: 0 })
+
+        const start = context.add(() => {
+          const split = splitKeepingKerning(wordmark.current)
+          gsap
+            .timeline({ defaults: { ease: EASE }, onComplete: () => split.revert() })
+            .from(split.chars, {
+              yPercent: 35,
+              autoAlpha: 0,
+              filter: 'blur(16px)',
+              duration: 1.3,
+              stagger: 0.05,
+            })
+            .to(roles, { autoAlpha: 1, duration: 1, stagger: 0.08 }, 0.5)
+            .from(roles, { y: 16, duration: 1, stagger: 0.08 }, 0.5)
+            .to(bar.current, { autoAlpha: 1, duration: 1 }, 0.7)
+        })
+
+        if (wordmark.current.hasAttribute('data-fitted')) start()
+        else playIntro.current = start
         return () => {
           playIntro.current = null
         }
