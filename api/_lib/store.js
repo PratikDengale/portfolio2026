@@ -171,8 +171,11 @@ export async function createVideoUpload(title) {
   return { videoId: guid, libraryId, expires, signature, endpoint: `${streamApi}/tusupload` }
 }
 
-const FAILED = new Set([5, 8])
-const FINISHED = 3
+// Video status codes from the Stream API's Get Video response (they differ
+// from the numbering Bunny uses in its webhooks): 0 created, 1 uploaded,
+// 2 processing, 3 transcoding, 4 finished, 5 error, 6 upload failed.
+const FINISHED = 4
+const FAILED = new Set([5, 6])
 
 // Where a video is in Bunny's encoding, and once finished, its 720p MP4 (or
 // the largest smaller one, for originals below 720p) plus the thumbnail Bunny
