@@ -1,8 +1,22 @@
 .head {
+  --rule-scale: 1; /* animated by the reveal */
+  position: relative;
   display: flex;
   margin-bottom: 28px;
   padding-bottom: 18px;
-  border-bottom: 1px solid var(--rule);
+}
+
+/* The 1px rule under the label, drawn as a scalable line. */
+.head::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--rule);
+  transform: scaleX(var(--rule-scale));
+  transform-origin: left;
 }
 
 .label {

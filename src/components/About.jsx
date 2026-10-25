@@ -10,7 +10,7 @@ export default function About() {
       <h2 id="about-title" className="visually-hidden">
         About
       </h2>
-      <div className={styles.portrait}>
+      <div className={styles.portrait} data-reveal="media">
         <Media
           ratio="4/5"
           src={portrait.src}
@@ -20,8 +20,10 @@ export default function About() {
         />
       </div>
       <div className={styles.text}>
-        <p className={styles.body}>{about.body}</p>
-        <dl className={styles.meta}>
+        <p className={styles.body} data-reveal="lines">
+          {about.body}
+        </p>
+        <dl className={styles.meta} data-reveal="fade">
           {about.meta.map(({ k, v }) => (
             <div key={k}>
               <dt>{k}</dt>

@@ -27,8 +27,9 @@ function inkEdges(el) {
 
 // Sizes single-line text so its ink runs edge to edge. By default it fills
 // the parent's content box; pass `alignStart` / `alignEnd` refs to pin the two
-// ink edges to the ink edges of other text instead.
-export function useFitText(text, { alignStart, alignEnd } = {}) {
+// ink edges to the ink edges of other text instead. `onFitted` (a ref to a
+// function) is called once the text has been fitted and revealed.
+export function useFitText(text, { alignStart, alignEnd, onFitted } = {}) {
   const ref = useRef(null)
 
   useLayoutEffect(() => {
@@ -58,6 +59,7 @@ export function useFitText(text, { alignStart, alignEnd } = {}) {
     const reveal = () => {
       fit()
       el.dataset.fitted = ''
+      onFitted?.current?.()
     }
     document.fonts
       .load(`${style.fontStyle} ${style.fontWeight} 1em ${style.fontFamily}`, text)
@@ -73,7 +75,7 @@ export function useFitText(text, { alignStart, alignEnd } = {}) {
       document.fonts.removeEventListener('loadingdone', fit)
       window.removeEventListener('resize', fit)
     }
-  }, [text, alignStart, alignEnd])
+  }, [text, alignStart, alignEnd, onFitted])
 
   return ref
 }

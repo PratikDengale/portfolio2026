@@ -12,21 +12,25 @@ export default function Services() {
       <ul className={styles.cards}>
         {services.map(({ slot, title, media, src, poster, caption }) => (
           <li key={slot} className={styles.card}>
-            <Media
-              id={slot}
-              ratio="4/3"
-              label={media}
-              alt={title}
-              src={src}
-              poster={poster}
-              caption={caption}
-            />
-            <h3 className={styles.title}>{title}</h3>
+            <div data-reveal="media">
+              <Media
+                id={slot}
+                ratio="4/3"
+                label={media}
+                alt={title}
+                src={src}
+                poster={poster}
+                caption={caption}
+              />
+            </div>
+            <h3 className={styles.title} data-reveal="fade">
+              {title}
+            </h3>
           </li>
         ))}
       </ul>
 
-      <ul className={styles.logos} aria-label="Clients">
+      <ul className={styles.logos} aria-label="Clients" data-reveal="stagger">
         {clients.map(({ slot, name, logo }) => (
           <li key={slot} className={`mono-label ${styles.logo}`}>
             {logo ? <img src={logo} alt={name} loading="lazy" /> : <span>{name}</span>}

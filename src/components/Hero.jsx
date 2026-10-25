@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { site } from '../data/content'
 import { useContent } from '../hooks/useContent'
 import { useFitText } from '../hooks/useFitText'
+import { EASE, gsap, MOTION_OK, useGSAP } from '../hooks/useReveal'
 import { useVideoPlayback } from '../hooks/useVideoPlayback'
 import MenuButton from './MenuButton'
 import RecDot from './RecDot'
@@ -16,10 +17,33 @@ export default function Hero({ menuOpen, onOpenMenu }) {
   // The wordmark's ink is pinned to the outer ink edges of the roles row.
   const firstRole = useRef(null)
   const lastRole = useRef(null)
-  const wordmark = useFitText(name, { alignStart: firstRole, alignEnd: lastRole })
+  const hero = useRef(null)
+  const bar = useRef(null)
+  const playIntro = useRef(null)
+  const wordmark = useFitText(name, { alignStart: firstRole, alignEnd: lastRole, onFitted: playIntro })
+
+  // Intro: the wordmark rises out of its mask, then the roles and the top bar
+  // follow. It starts once the wordmark has its font and size.
+  useGSAP(
+    () => {
+      gsap.matchMedia().add(MOTION_OK, () => {
+        const intro = gsap
+          .timeline({ paused: true, defaults: { ease: EASE } })
+          .from(wordmark.current, { yPercent: 105, duration: 1.4 })
+          .from(firstRole.current.parentElement.children, { y: 16, autoAlpha: 0, duration: 1, stagger: 0.08 }, 0.3)
+          .from(bar.current, { autoAlpha: 0, duration: 1 }, 0.5)
+        if (wordmark.current.hasAttribute('data-fitted')) intro.play()
+        else playIntro.current = () => intro.play()
+        return () => {
+          playIntro.current = null
+        }
+      })
+    },
+    { scope: hero },
+  )
 
   return (
-    <header id="top" className={styles.hero}>
+    <header id="top" className={styles.hero} ref={hero}>
       {reel.src ? (
         <video
           ref={reelRef}
@@ -36,7 +60,7 @@ export default function Hero({ menuOpen, onOpenMenu }) {
         reel.poster && <img className={styles.reel} src={reel.poster} alt="" />
       )}
 
-      <div className={styles.bar}>
+      <div className={styles.bar} ref={bar}>
         <div className={styles.reelControls}>
           {/* The dot blinks while the showreel plays. */}
           <RecDot still={Boolean(reel.src) && !playback.playing} />

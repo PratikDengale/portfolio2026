@@ -2,7 +2,7 @@ import styles from './SectionHead.module.css'
 
 export default function SectionHead({ id, children }) {
   return (
-    <div className={styles.head}>
+    <div className={styles.head} data-reveal="head">
       <h2 id={id} className={`mono-label ${styles.label}`}>
         {children}
       </h2>

@@ -9,7 +9,7 @@ export default function Footer() {
   return (
     <footer id="contact" className={styles.footer} aria-labelledby="contact-title">
       <div className={styles.inner}>
-        <div className={styles.row}>
+        <div className={styles.row} data-reveal="fade">
           <h2 id="contact-title" className={`mono-label ${styles.label}`}>
             Contact
           </h2>
@@ -20,10 +20,10 @@ export default function Footer() {
         </div>
 
         <div className={styles.middle}>
-          <a className={styles.email} href={`mailto:${site.email}`}>
+          <a className={styles.email} href={`mailto:${site.email}`} data-reveal="lines">
             {site.email}
           </a>
-          <div className={styles.icons}>
+          <div className={styles.icons} data-reveal="stagger">
             <a
               className={styles.social}
               href={site.socials.instagram}
@@ -40,7 +40,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className={styles.row}>
+        <div className={styles.row} data-reveal="fade">
           <p className={`mono-label ${styles.label}`}>
             © {year} {site.name}
           </p>
