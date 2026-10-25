@@ -12,7 +12,8 @@ import styles from './Hero.module.css'
 export default function Hero({ menuOpen, onOpenMenu }) {
   const { name, roles } = site
   const { reel } = useContent()
-  const [reelRef, playback] = useVideoPlayback('reel', reel.src)
+  // The showreel autoplays even with Reduce Motion on; the pause button is right there.
+  const [reelRef, playback] = useVideoPlayback('reel', reel.src, { alwaysAutoplay: true })
 
   // The wordmark's ink is pinned to the outer ink edges of the roles row.
   const firstRole = useRef(null)
@@ -49,6 +50,7 @@ export default function Hero({ menuOpen, onOpenMenu }) {
           ref={reelRef}
           className={styles.reel}
           src={reel.src}
+          autoPlay
           muted
           loop
           playsInline

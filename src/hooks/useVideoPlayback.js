@@ -17,8 +17,11 @@ const useSoundOwner = () => useSyncExternalStore(subscribe, () => soundOwner)
 
 // Playback for one background video with play/pause and sound controls.
 //
-// - It plays (muted) while at least 40% of it is on screen, unless the visitor
-//   prefers reduced motion; then it waits for the play button.
+// - It plays (muted) while at least 40% of it is on screen. If the visitor
+//   prefers reduced motion it waits for the play button instead, unless
+//   `alwaysAutoplay` is set (the showreel, which has a visible pause button).
+// - If the device blocks autoplay (e.g. iPhone Low Power Mode), it starts on
+//   the visitor's first tap anywhere, which browsers accept as permission.
 // - Pausing sticks: a paused video stays paused when scrolled back to.
 // - Sound needs a click (browsers only autoplay muted), and leaving the
 //   screen pauses it, so nothing is heard that can't be seen.
@@ -26,9 +29,9 @@ const useSoundOwner = () => useSyncExternalStore(subscribe, () => soundOwner)
 // `id` identifies the video for the one-sound-at-a-time rule; `src` restarts
 // the wiring when the file changes. Returns [ref for the <video>, state and
 // toggles for its controls].
-export function useVideoPlayback(id, src) {
+export function useVideoPlayback(id, src, { alwaysAutoplay = false } = {}) {
   const ref = useRef(null)
-  const reducedMotion = usePrefersReducedMotion()
+  const reducedMotion = usePrefersReducedMotion() && !alwaysAutoplay
   const hasSound = useSoundOwner() === id
   const [choice, setChoice] = useState(null) // the visitor's play/pause, once pressed
   const [visible, setVisible] = useState(false)
@@ -38,6 +41,10 @@ export function useVideoPlayback(id, src) {
   useEffect(() => {
     const video = ref.current
     if (!video) return
+    // React sets only the muted *property*; Safari also wants the attribute
+    // before it will autoplay.
+    video.defaultMuted = true
+    video.muted = true
     const update = () => setPlaying(!video.paused)
     video.addEventListener('play', update)
     video.addEventListener('pause', update)
@@ -60,8 +67,26 @@ export function useVideoPlayback(id, src) {
   useEffect(() => {
     const video = ref.current
     if (!video) return
-    if (shouldPlay) video.play().catch(() => setPlaying(false))
-    else video.pause()
+    if (!shouldPlay) {
+      video.pause()
+      return
+    }
+    let retry = null
+    video.play().catch(() => {
+      setPlaying(false)
+      // Autoplay refused by the device: try again on the first tap or key.
+      retry = () => {
+        removeRetry()
+        video.play().catch(() => {})
+      }
+      for (const type of ['touchend', 'click', 'keydown']) document.addEventListener(type, retry, true)
+    })
+    const removeRetry = () => {
+      if (!retry) return
+      for (const type of ['touchend', 'click', 'keydown']) document.removeEventListener(type, retry, true)
+      retry = null
+    }
+    return removeRetry
   }, [shouldPlay, src])
 
   // Give up the sound when this video goes away.
