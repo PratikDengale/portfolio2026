@@ -34,9 +34,15 @@ export default function Hero({ menuOpen, onOpenMenu }) {
   const { name, roles } = site
   const { reel } = useContent()
   // The showreel autoplays even with Reduce Motion on; the pause button is right there.
-  // It is fixed to the window, so what counts is how much of its window shows.
+  // It is fixed to the window, so what counts is its window, and it plays
+  // while any of that shows: the page slides over it, so the part still in
+  // view is never the part scrolling away.
   const reelWindow = useRef(null)
-  const [reelRef, playback] = useVideoPlayback('reel', reel.src, { alwaysAutoplay: true, watch: reelWindow })
+  const [reelRef, playback] = useVideoPlayback('reel', reel.src, {
+    alwaysAutoplay: true,
+    watch: reelWindow,
+    share: 0,
+  })
 
   // The wordmark's ink is pinned to the outer ink edges of the roles row.
   const firstRole = useRef(null)

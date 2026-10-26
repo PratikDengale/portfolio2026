@@ -17,21 +17,23 @@ const useSoundOwner = () => useSyncExternalStore(subscribe, () => soundOwner)
 
 // Playback for one background video with play/pause and sound controls.
 //
-// - It plays (muted) while at least 40% of it is on screen. If the visitor
+// - It plays (muted) while at least `share` of it is on screen (40% unless
+//   set; the showreel uses 0, any of it). If the visitor
 //   prefers reduced motion it waits for the play button instead, unless
 //   `alwaysAutoplay` is set (the showreel, which has a visible pause button).
 // - If the device blocks autoplay (e.g. iPhone Low Power Mode), it starts on
 //   the visitor's first tap anywhere, which browsers accept as permission.
 // - Pausing sticks: a paused video stays paused when scrolled back to.
 // - Sound needs a click (browsers only autoplay muted), and leaving the
-//   screen pauses it, so nothing is heard that can't be seen.
+//   screen pauses it, so nothing is heard that can't be seen. If the browser
+//   won't resume it with sound when it comes back, it carries on muted.
 //
 // `id` identifies the video for the one-sound-at-a-time rule; `src` restarts
 // the wiring when the file changes. `watch` is a ref to the element whose
 // visibility counts, for a video that is fixed to the window and only seen
 // through it (defaults to the video). Returns [ref for the <video>, state and
 // toggles for its controls].
-export function useVideoPlayback(id, src, { alwaysAutoplay = false, watch } = {}) {
+export function useVideoPlayback(id, src, { alwaysAutoplay = false, watch, share = 0.4 } = {}) {
   const ref = useRef(null)
   const reducedMotion = usePrefersReducedMotion() && !alwaysAutoplay
   const hasSound = useSoundOwner() === id
@@ -50,9 +52,10 @@ export function useVideoPlayback(id, src, { alwaysAutoplay = false, watch } = {}
     const update = () => setPlaying(!video.paused)
     video.addEventListener('play', update)
     video.addEventListener('pause', update)
-    const io = new IntersectionObserver(([entry]) => setVisible(entry.intersectionRatio >= 0.4), {
-      threshold: [0, 0.4],
-    })
+    const io = new IntersectionObserver(
+      ([entry]) => setVisible(entry.isIntersecting && entry.intersectionRatio >= share),
+      { threshold: [0, share] },
+    )
     io.observe(watch?.current ?? video)
     return () => {
       io.disconnect()
@@ -60,7 +63,7 @@ export function useVideoPlayback(id, src, { alwaysAutoplay = false, watch } = {}
       video.removeEventListener('pause', update)
       video.pause()
     }
-  }, [src, watch])
+  }, [src, watch, share])
 
   useEffect(() => {
     if (ref.current) ref.current.muted = !hasSound
@@ -74,21 +77,34 @@ export function useVideoPlayback(id, src, { alwaysAutoplay = false, watch } = {}
       return
     }
     let retry = null
-    video.play().catch(() => {
+    // Autoplay refused by the device: try again on the first tap or key.
+    const waitForTap = () => {
       setPlaying(false)
-      // Autoplay refused by the device: try again on the first tap or key.
       retry = () => {
         removeRetry()
         video.play().catch(() => {})
       }
       for (const type of ['touchend', 'click', 'keydown']) document.addEventListener(type, retry, true)
+    }
+    let active = true
+    video.play().catch((error) => {
+      if (!active) return
+      if (video.muted || error.name !== 'NotAllowedError') return waitForTap()
+      // Sound not allowed outside a click (e.g. Safari, coming back on
+      // screen): carry on muted rather than sit there paused.
+      video.muted = true
+      setSoundOwner(null)
+      video.play().catch(() => active && waitForTap())
     })
     const removeRetry = () => {
       if (!retry) return
       for (const type of ['touchend', 'click', 'keydown']) document.removeEventListener(type, retry, true)
       retry = null
     }
-    return removeRetry
+    return () => {
+      active = false
+      removeRetry()
+    }
   }, [shouldPlay, src])
 
   // Give up the sound when this video goes away.
