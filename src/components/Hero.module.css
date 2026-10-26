@@ -1,16 +1,28 @@
 .hero {
+  --hero-height: max(min(56.25vw, 100svh), 560px); /* 810px at 1440 */
   position: relative;
-  height: min(56.25vw, 100svh); /* 810px at 1440 */
-  min-height: 560px;
+  height: var(--hero-height);
   overflow: hidden;
   background: var(--surface);
 }
 
-.reel {
+/* Like the footer, in reverse: the window scrolls with the hero, but
+   clip-path clips even fixed descendants, so the showreel inside it stays
+   still while the page slides up over it. The rest of the hero scrolls as
+   usual. The clip sits on this window, not the hero, so the hero's top bar
+   can still rise above the frosted strip. */
+.reelWindow {
   position: absolute;
   inset: 0;
+  clip-path: inset(0);
+}
+
+.reel {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: 100%;
+  height: var(--hero-height);
   object-fit: cover;
 }
 

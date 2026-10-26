@@ -34,7 +34,9 @@ export default function Hero({ menuOpen, onOpenMenu }) {
   const { name, roles } = site
   const { reel } = useContent()
   // The showreel autoplays even with Reduce Motion on; the pause button is right there.
-  const [reelRef, playback] = useVideoPlayback('reel', reel.src, { alwaysAutoplay: true })
+  // It is fixed to the window, so what counts is how much of its window shows.
+  const reelWindow = useRef(null)
+  const [reelRef, playback] = useVideoPlayback('reel', reel.src, { alwaysAutoplay: true, watch: reelWindow })
 
   // The wordmark's ink is pinned to the outer ink edges of the roles row.
   const firstRole = useRef(null)
@@ -83,22 +85,26 @@ export default function Hero({ menuOpen, onOpenMenu }) {
 
   return (
     <header id="top" className={styles.hero} ref={hero}>
-      {reel.src ? (
-        <video
-          ref={reelRef}
-          className={styles.reel}
-          src={reel.src}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          poster={reel.poster ?? undefined}
-          aria-hidden="true"
-        />
-      ) : (
-        reel.poster && <img className={styles.reel} src={reel.poster} alt="" />
-      )}
+      {/* The showreel stays put while the page scrolls over it; this window
+          moves with the hero and shows only its part of it. */}
+      <div className={styles.reelWindow} ref={reelWindow}>
+        {reel.src ? (
+          <video
+            ref={reelRef}
+            className={styles.reel}
+            src={reel.src}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            poster={reel.poster ?? undefined}
+            aria-hidden="true"
+          />
+        ) : (
+          reel.poster && <img className={styles.reel} src={reel.poster} alt="" />
+        )}
+      </div>
 
       <div className={styles.bar} ref={bar}>
         <div className={styles.reelControls}>

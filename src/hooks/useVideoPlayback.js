@@ -27,9 +27,11 @@ const useSoundOwner = () => useSyncExternalStore(subscribe, () => soundOwner)
 //   screen pauses it, so nothing is heard that can't be seen.
 //
 // `id` identifies the video for the one-sound-at-a-time rule; `src` restarts
-// the wiring when the file changes. Returns [ref for the <video>, state and
+// the wiring when the file changes. `watch` is a ref to the element whose
+// visibility counts, for a video that is fixed to the window and only seen
+// through it (defaults to the video). Returns [ref for the <video>, state and
 // toggles for its controls].
-export function useVideoPlayback(id, src, { alwaysAutoplay = false } = {}) {
+export function useVideoPlayback(id, src, { alwaysAutoplay = false, watch } = {}) {
   const ref = useRef(null)
   const reducedMotion = usePrefersReducedMotion() && !alwaysAutoplay
   const hasSound = useSoundOwner() === id
@@ -51,14 +53,14 @@ export function useVideoPlayback(id, src, { alwaysAutoplay = false } = {}) {
     const io = new IntersectionObserver(([entry]) => setVisible(entry.intersectionRatio >= 0.4), {
       threshold: [0, 0.4],
     })
-    io.observe(video)
+    io.observe(watch?.current ?? video)
     return () => {
       io.disconnect()
       video.removeEventListener('play', update)
       video.removeEventListener('pause', update)
       video.pause()
     }
-  }, [src])
+  }, [src, watch])
 
   useEffect(() => {
     if (ref.current) ref.current.muted = !hasSound
