@@ -54,7 +54,8 @@ export default function Hero({ menuOpen, onOpenMenu }) {
         const roles = firstRole.current.parentElement.children
         gsap.set([...roles, bar.current], { autoAlpha: 0 })
 
-        const start = context.add(() => {
+        // Named, so add() hands back the wrapped function instead of running it now.
+        const start = context.add('playIntro', () => {
           const split = splitKeepingKerning(wordmark.current)
           gsap
             .timeline({ delay: INTRO_DELAY, defaults: { ease: EASE }, onComplete: () => split.revert() })
