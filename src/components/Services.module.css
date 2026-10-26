@@ -33,24 +33,19 @@
   justify-content: center;
   height: 64px;
   padding: 0 12px;
-  border: 1px solid var(--logo-border);
   color: var(--ink);
 }
 
-.logo > * {
-  opacity: 0.6;
-  transition: opacity 150ms;
+.more {
+  margin-top: 32px;
+  color: var(--muted);
+  text-align: center;
 }
 
-.logo:hover > * {
-  opacity: 1;
-}
-
-/* Any logo artwork is flattened to a single light tone. */
+/* Shown in their own colours; the files are prepared for the dark page. */
 .logo img {
   max-width: 100%;
-  max-height: 28px;
-  filter: brightness(0) invert(0.92);
+  max-height: var(--logo-height, 28px);
 }
 
 @media (max-width: 1024px) {

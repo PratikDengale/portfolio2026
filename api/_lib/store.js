@@ -282,7 +282,7 @@ function isOwn(kind, value) {
 
 // Rebuilds a content document from untrusted input, keeping only what the
 // site understands: per slot an optional video (with its Bunny id, thumbnail
-// and size), image (with its size), caption and name.
+// and size), image (with its size) and caption.
 export function sanitizeContent(input) {
   const invalid = (message) => new StoreError(message, 400)
   const entries = Object.entries(input?.media ?? {})
@@ -303,10 +303,8 @@ export function sanitizeContent(input) {
       const size = value?.[field]
       if (entry[field.replace('Size', '')] && Number.isSafeInteger(size) && size > 0) entry[field] = size
     }
-    for (const field of ['name', 'caption']) {
-      const text = typeof value?.[field] === 'string' ? value[field].trim().slice(0, 80) : ''
-      if (text) entry[field] = text
-    }
+    const caption = typeof value?.caption === 'string' ? value.caption.trim().slice(0, 80) : ''
+    if (caption) entry.caption = caption
     if (Object.keys(entry).length) media[slot] = entry
   }
   return { media, updatedAt: new Date().toISOString() }

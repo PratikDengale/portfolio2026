@@ -1,10 +1,11 @@
+import { clients } from '../data/content'
 import { useContent } from '../hooks/useContent'
 import Media from './Media'
 import SectionHead from './SectionHead'
 import styles from './Services.module.css'
 
 export default function Services() {
-  const { clients, services } = useContent()
+  const { services } = useContent()
   return (
     <section id="services" className={styles.section} aria-labelledby="services-title">
       <SectionHead id="services-title">Services</SectionHead>
@@ -31,12 +32,19 @@ export default function Services() {
       </ul>
 
       <ul className={styles.logos} aria-label="Clients" data-reveal="stagger">
-        {clients.map(({ slot, name, logo }) => (
-          <li key={slot} className={`mono-label ${styles.logo}`}>
-            {logo ? <img src={logo} alt={name} loading="lazy" /> : <span>{name}</span>}
+        {clients.map(({ name, logo, height }) => (
+          <li key={name} className={`mono-label ${styles.logo}`}>
+            {logo ? (
+              <img src={logo} alt={name} loading="lazy" style={height && { '--logo-height': `${height}px` }} />
+            ) : (
+              <span>{name}</span>
+            )}
           </li>
         ))}
       </ul>
+      <p className={`mono-label ${styles.more}`} data-reveal="fade">
+        and many more
+      </p>
     </section>
   )
 }

@@ -2,7 +2,6 @@ import { useState } from 'react'
 import {
   EXTENSIONS,
   IMAGE_TYPES,
-  LOGO_TYPES,
   MAX_IMAGE_BYTES,
   MAX_VIDEO_BYTES,
   VIDEO_TYPES,
@@ -95,13 +94,11 @@ export default function SlotCard({ slot, saved, changes, disabled, onStage, onRe
   const image = fieldValue(saved?.image, changes?.image)
   // Bunny's own frame stands in for a poster until one is uploaded.
   const poster = image ?? (changes?.video === undefined ? saved?.thumbnail : null) ?? undefined
-  const isLogo = slot.accepts === 'logo'
-  const name = changes?.name ?? saved?.name ?? ''
   const caption = changes?.caption ?? saved?.caption ?? ''
 
   return (
     <article className={styles.card} data-pending={changes ? '' : undefined} aria-label={slot.label}>
-      <div className={isLogo ? styles.logoPreview : styles.preview}>
+      <div className={styles.preview}>
         {video ? (
           // The key remounts the player when the file changes.
           <video key={video} src={video} poster={poster} muted loop playsInline controls preload="metadata" />
@@ -134,8 +131,8 @@ export default function SlotCard({ slot, saved, changes, disabled, onStage, onRe
         />
       )}
       <FileField
-        label={slot.accepts === 'video' ? 'Poster / still' : isLogo ? 'Logo' : 'Image'}
-        types={isLogo ? LOGO_TYPES : IMAGE_TYPES}
+        label={slot.accepts === 'video' ? 'Poster / still' : 'Image'}
+        types={IMAGE_TYPES}
         value={image}
         savedSize={saved?.imageSize}
         staged={changes?.image}
@@ -155,18 +152,6 @@ export default function SlotCard({ slot, saved, changes, disabled, onStage, onRe
             onChange={(event) => onStage('caption', event.target.value)}
           />
         </label>
-      )}
-      {isLogo && (
-        <input
-          className={styles.name}
-          type="text"
-          value={name}
-          maxLength={80}
-          placeholder={slot.label}
-          aria-label={`Client name for ${slot.label}`}
-          disabled={disabled}
-          onChange={(event) => onStage('name', event.target.value)}
-        />
       )}
     </article>
   )

@@ -19,13 +19,17 @@ const FIELDS = {
   image: ['image', 'imageSize'],
 }
 
+// Slots the site still has. Publishing drops anything saved for any other
+// (such as the client logos, now fixed files), which frees its storage.
+const slotIds = new Set(slots.map(({ id }) => id))
+
 const groups = slots.reduce((byGroup, slot) => {
   ;(byGroup[slot.group] ??= []).push(slot)
   return byGroup
 }, {})
 
 // The media manager. Changes are staged in `draft` (per slot and field: a File
-// to upload, null to remove, or a string for a name or caption) and nothing reaches the
+// to upload, null to remove, or a string for a caption) and nothing reaches the
 // live site until Publish.
 export default function Admin() {
   const [store, setStore] = useState(null) // { media, etag, storage } as last saved
@@ -110,7 +114,9 @@ export default function Admin() {
       }
 
       setProgress('Publishing…')
-      const media = structuredClone(store.media)
+      const media = structuredClone(
+        Object.fromEntries(Object.entries(store.media).filter(([slot]) => slotIds.has(slot))),
+      )
       for (const [slot, changes] of Object.entries(draft)) {
         const entry = { ...media[slot] }
         for (const [field, value] of Object.entries(changes)) {
@@ -183,8 +189,8 @@ export default function Admin() {
             Choose files for any slot, then Publish to put them on the site. Videos: MP4, MOV or
             WebM up to 2 GB. bunny.net re-encodes them to 720p for the site, so upload a
             good-quality export with sound if the clip has any; encoding takes a few minutes, so
-            keep this page open until Publish finishes. Images: JPG, PNG, WebP or AVIF up to 4 MB;
-            logos can also be SVG. Without a poster, a video shows a frame Bunny picks.
+            keep this page open until Publish finishes. Images: JPG, PNG, WebP or AVIF up to 4 MB.
+            Without a poster, a video shows a frame Bunny picks.
           </p>
           <p className={styles.intro}>
             A caption is the small text at the bottom-left of a tile. An empty slot shows its
@@ -207,7 +213,7 @@ export default function Admin() {
           {Object.entries(groups).map(([group, groupSlots]) => (
             <section key={group} className={styles.group} aria-labelledby={`group-${groupSlots[0].id}`}>
               <SectionHead id={`group-${groupSlots[0].id}`}>{group}</SectionHead>
-              <div className={groupSlots[0].accepts === 'logo' ? styles.logoGrid : styles.grid}>
+              <div className={styles.grid}>
                 {groupSlots.map((slot) => (
                   <SlotCard
                     key={slot.id}

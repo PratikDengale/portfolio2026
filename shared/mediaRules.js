@@ -1,7 +1,6 @@
 // Upload rules shared by the admin UI (client-side checks) and the API.
 export const VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm']
 export const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif']
-export const LOGO_TYPES = [...IMAGE_TYPES, 'image/svg+xml']
 
 // Videos go to Bunny Stream, which re-encodes them to 720p for the site, so
 // the upload can be a good-quality master.
@@ -18,7 +17,6 @@ export const EXTENSIONS = {
   'image/png': '.png',
   'image/webp': '.webp',
   'image/avif': '.avif',
-  'image/svg+xml': '.svg',
 }
 
 // Lower-case, URL-safe file name without its extension.

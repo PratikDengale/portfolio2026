@@ -98,11 +98,6 @@
   gap: var(--gap);
 }
 
-.logoGrid {
-  composes: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-}
-
 /* Which build and storage mode is running; useful when something misbehaves. */
 .build {
   margin-top: 72px;

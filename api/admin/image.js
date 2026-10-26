@@ -1,4 +1,4 @@
-import { EXTENSIONS, LOGO_TYPES, MAX_IMAGE_BYTES, safeBaseName, SLOT_ID } from '../../shared/mediaRules.js'
+import { EXTENSIONS, IMAGE_TYPES, MAX_IMAGE_BYTES, safeBaseName, SLOT_ID } from '../../shared/mediaRules.js'
 import { denyUnlessAdmin } from '../_lib/auth.js'
 import { saveImage, StoreError } from '../_lib/store.js'
 
@@ -15,7 +15,7 @@ export async function POST(request) {
     const slot = params.get('slot') ?? ''
     const type = (request.headers.get('content-type') ?? '').split(';')[0].trim()
     if (!SLOT_ID.test(slot)) throw new StoreError('Invalid slot.', 400)
-    if (!LOGO_TYPES.includes(type)) throw new StoreError('Use JPG, PNG, WebP, AVIF or SVG.', 415)
+    if (!IMAGE_TYPES.includes(type)) throw new StoreError('Use JPG, PNG, WebP or AVIF.', 415)
     if (Number(request.headers.get('content-length')) > MAX_IMAGE_BYTES) {
       throw new StoreError('Images can be up to 4 MB.', 413)
     }

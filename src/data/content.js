@@ -51,10 +51,26 @@ const numbers = new Map(
   [work.flat(), services].flatMap((items) => items.map(({ slot }, i) => [slot, pad(i + 1)])),
 )
 
-const clients = Array.from({ length: 12 }, (_, i) => ({
-  slot: `logo/${pad(i + 1)}`,
-  name: `Client ${i + 1}`,
-}))
+// Client logos are fixed files in public/clients/, not CMS slots, shown in
+// their own colours on the dark page. Use SVG or a transparent PNG, and swap
+// any colour too dark to read there (under 3:1 against --bg, like black or
+// navy) for --ink, as a brand's reversed logo does. A client without a logo
+// shows its name. `height` (px, default 28) balances the marks by eye: wide
+// wordmarks go smaller, compact marks larger.
+export const clients = [
+  { name: 'YouTube FanFest', logo: '/clients/youtube-fanfest.png', height: 22 },
+  { name: 'Puma', logo: '/clients/puma.svg', height: 36 },
+  { name: 'H&M', logo: '/clients/hm.svg', height: 34 },
+  { name: 'Black & White', logo: '/clients/black-and-white.png', height: 22 },
+  { name: 'Jameson', logo: '/clients/jameson.png', height: 30 },
+  { name: 'Ajio', logo: '/clients/ajio.svg', height: 22 },
+  { name: 'Simba', logo: '/clients/simba.png', height: 24 },
+  { name: 'FILA', logo: '/clients/fila.svg', height: 22 },
+  { name: 'TVS', logo: '/clients/tvs.svg', height: 24 },
+  { name: 'Saregama', logo: '/clients/saregama.png', height: 40 },
+  { name: 'Amazon Music', logo: '/clients/amazon-music.svg', height: 26 },
+  { name: 'Heineken', logo: '/clients/heineken.svg', height: 26 },
+]
 
 export const about = {
   body: 'I craft visual stories with a distinct perspective, combining technical expertise with a strong artistic vision. From the way light falls to the rhythm of a moving frame, every detail serves a purpose: to create images that captivate, connect, and leave a lasting impression.',
@@ -65,7 +81,7 @@ export const about = {
 }
 
 // Every slot the admin can fill. `accepts` is what a slot takes: 'video'
-// (a clip plus a poster/still), 'image', or 'logo' (an image plus a name).
+// (a clip plus a poster/still) or 'image'.
 // Slots with a `caption` can have their tile text edited; the value here is
 // the default shown while the slot is empty.
 export const slots = [
@@ -86,7 +102,6 @@ export const slots = [
     accepts: 'video',
     caption: numbers.get(slot),
   })),
-  ...clients.map(({ slot, name }) => ({ id: slot, group: 'Client logos', label: name, accepts: 'logo' })),
   { id: 'portrait', group: 'About', label: 'Portrait', ratio: '4/5', accepts: 'image', caption: 'portrait' },
 ]
 
@@ -106,11 +121,6 @@ export function resolveContent(manifest) {
       column.map((item) => ({ ...item, label: numbers.get(item.slot), ...clip(item.slot) })),
     ),
     services: services.map((item) => ({ ...item, label: numbers.get(item.slot), ...clip(item.slot) })),
-    clients: clients.map(({ slot, name }) => ({
-      slot,
-      name: entry(slot).name ?? name,
-      logo: entry(slot).image ?? null,
-    })),
     portrait: { src: entry('portrait').image ?? null, caption: entry('portrait').caption ?? null },
   }
 }
