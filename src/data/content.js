@@ -38,13 +38,21 @@ const work = [
 ]
 
 const services = [
-  { slot: 'service/cinematography', title: 'Cinematography', media: 'on-set camera bts' },
-  { slot: 'service/color-grading', title: 'Color Grading', media: 'edit suite / timeline' },
-  { slot: 'service/photography', title: 'Photography', media: 'drone in flight' },
+  { slot: 'service/cinematography', title: 'Cinematography' },
+  { slot: 'service/color-grading', title: 'Color Grading' },
+  { slot: 'service/photography', title: 'Photography' },
 ]
 
+const pad = (n) => String(n).padStart(2, '0')
+
+// An empty tile is captioned with its number within its section: 01, 02, …
+// Work is counted down each authored column in turn.
+const numbers = new Map(
+  [work.flat(), services].flatMap((items) => items.map(({ slot }, i) => [slot, pad(i + 1)])),
+)
+
 const clients = Array.from({ length: 12 }, (_, i) => ({
-  slot: `logo/${String(i + 1).padStart(2, '0')}`,
+  slot: `logo/${pad(i + 1)}`,
   name: `Client ${i + 1}`,
 }))
 
@@ -68,15 +76,15 @@ export const slots = [
     label,
     ratio,
     accepts: 'video',
-    caption: label,
+    caption: numbers.get(slot),
   })),
-  ...services.map(({ slot, title, media }) => ({
+  ...services.map(({ slot, title }) => ({
     id: slot,
     group: 'Services',
     label: title,
     ratio: '4/3',
     accepts: 'video',
-    caption: media,
+    caption: numbers.get(slot),
   })),
   ...clients.map(({ slot, name }) => ({ id: slot, group: 'Client logos', label: name, accepts: 'logo' })),
   { id: 'portrait', group: 'About', label: 'Portrait', ratio: '4/5', accepts: 'image', caption: 'portrait' },
@@ -94,8 +102,10 @@ export function resolveContent(manifest) {
 
   return {
     reel: clip('reel'),
-    work: work.map((column) => column.map((item) => ({ ...item, ...clip(item.slot) }))),
-    services: services.map((item) => ({ ...item, ...clip(item.slot) })),
+    work: work.map((column) =>
+      column.map((item) => ({ ...item, label: numbers.get(item.slot), ...clip(item.slot) })),
+    ),
+    services: services.map((item) => ({ ...item, label: numbers.get(item.slot), ...clip(item.slot) })),
     clients: clients.map(({ slot, name }) => ({
       slot,
       name: entry(slot).name ?? name,

@@ -1,6 +1,6 @@
 .footer {
   --focus-ring: var(--footer-ink);
-  padding: var(--gutter);
+  --footer-height: calc(clamp(420px, 45.14vw, 650px) + 2 * var(--gutter)); /* 650px + padding at 1440 */
   background: var(--footer-bg);
   color: var(--footer-ink);
 }
@@ -10,7 +10,30 @@
   flex-direction: column;
   justify-content: space-between;
   gap: 48px;
-  min-height: clamp(420px, 45.14vw, 650px); /* 650px at 1440 */
+  min-height: var(--footer-height);
+  padding: var(--gutter);
+  background: var(--footer-bg);
+}
+
+/* Reveal: the footer's box scrolls with the page as usual but only acts as a
+   window (clip-path clips even fixed descendants), while its content is fixed
+   to the bottom of the viewport. So the dark page slides up off a footer that
+   was sitting still behind it all along. Capped at the viewport height, or
+   its top would never come into view; on very short screens it just scrolls. */
+@media (min-height: 520px) {
+  .footer {
+    height: min(var(--footer-height), 100svh);
+    clip-path: inset(0);
+  }
+
+  .inner {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: min(var(--footer-height), 100svh);
+    min-height: 0;
+  }
 }
 
 .row {

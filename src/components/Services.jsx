@@ -10,13 +10,13 @@ export default function Services() {
       <SectionHead id="services-title">Services</SectionHead>
 
       <ul className={styles.cards}>
-        {services.map(({ slot, title, media, src, poster, caption }) => (
+        {services.map(({ slot, title, label, src, poster, caption }) => (
           <li key={slot} className={styles.card}>
             <div data-reveal="media">
               <Media
                 id={slot}
                 ratio="4/3"
-                label={media}
+                label={label}
                 alt={title}
                 src={src}
                 poster={poster}

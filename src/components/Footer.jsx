@@ -7,7 +7,9 @@ const year = new Date().getFullYear()
 
 export default function Footer() {
   return (
-    <footer id="contact" className={styles.footer} aria-labelledby="contact-title">
+    // The content is fixed in place (see Footer.module.css), so its reveals are
+    // timed by the footer's own box as it scrolls up.
+    <footer id="contact" className={styles.footer} aria-labelledby="contact-title" data-reveal-scope>
       <div className={styles.inner}>
         <div className={styles.row} data-reveal="fade">
           <h2 id="contact-title" className={`mono-label ${styles.label}`}>

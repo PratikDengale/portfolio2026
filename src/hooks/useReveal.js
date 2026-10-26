@@ -25,7 +25,13 @@ export function useReveal() {
     const mm = gsap.matchMedia()
     mm.add(MOTION_OK, () => {
       const all = (kind) => gsap.utils.toArray(`[data-reveal="${kind}"]`)
-      const onScroll = (trigger) => ({ trigger, start: START, once: true })
+      // Inside a data-reveal-scope, elements don't scroll themselves (they're
+      // fixed in place), so the scope's box is what crosses the start line.
+      const onScroll = (element) => ({
+        trigger: element.closest('[data-reveal-scope]') ?? element,
+        start: START,
+        once: true,
+      })
 
       for (const head of all('head')) {
         gsap

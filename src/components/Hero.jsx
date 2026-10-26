@@ -28,7 +28,7 @@ function splitKeepingKerning(element) {
 }
 
 // Seconds the showreel plays alone before the hero text and bar animate in.
-const INTRO_DELAY = 1.5
+const INTRO_DELAY = 1
 
 export default function Hero({ menuOpen, onOpenMenu }) {
   const { name, roles } = site
@@ -60,14 +60,14 @@ export default function Hero({ menuOpen, onOpenMenu }) {
           gsap
             .timeline({ delay: INTRO_DELAY, defaults: { ease: EASE }, onComplete: () => split.revert() })
             .from(split.chars, {
-              yPercent: 35,
+              yPercent: 15,
               autoAlpha: 0,
-              filter: 'blur(16px)',
-              duration: 1.3,
-              stagger: { each: 0.06, from: 'center' },
+              filter: 'blur(12px)',
+              duration: 2,
+              stagger: { each: 0.03, from: 'center' },
             })
-            .to(roles, { autoAlpha: 1, duration: 1, stagger: 0.08 }, 0.5)
-            .from(roles, { y: 16, duration: 1, stagger: 0.08 }, 0.5)
+            .to(roles, { autoAlpha: 1, duration: 1, stagger: 0.03 }, 0.5)
+            .from(roles, { y: 16, duration: 1, stagger: 0.03 }, 0.5)
             .to(bar.current, { autoAlpha: 1, duration: 1 }, 0.7)
         })
 
