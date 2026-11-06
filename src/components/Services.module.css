@@ -20,14 +20,19 @@
   letter-spacing: -0.025em;
 }
 
+/* Rows of equal cells, `--per-row` to a row; a part-filled last row is
+   centred. */
 .logos {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  --per-row: 6;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: var(--gap);
   margin-top: 72px;
 }
 
 .logo {
+  flex: 0 0 calc((100% - (var(--per-row) - 1) * var(--gap)) / var(--per-row));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -50,7 +55,7 @@
 
 @media (max-width: 1024px) {
   .logos {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    --per-row: 4;
   }
 }
 
@@ -63,7 +68,7 @@
 
 @media (max-width: 640px) {
   .logos {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    --per-row: 3;
     margin-top: 56px;
   }
 }

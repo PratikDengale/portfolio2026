@@ -1,0 +1,26 @@
+.lanyard {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  /* Changed from React Bits: everything under the lanyard stays clickable;
+     the card is picked up from window-level events (see Lanyard.jsx). */
+  pointer-events: none;
+}
+
+.lanyard-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Set on <html> while the pointer is over the card or holding it. */
+:root[data-lanyard-cursor='grab'],
+:root[data-lanyard-cursor='grab'] * {
+  cursor: grab !important;
+}
+
+:root[data-lanyard-cursor='grabbing'],
+:root[data-lanyard-cursor='grabbing'] * {
+  cursor: grabbing !important;
+}

@@ -3,6 +3,7 @@
 }
 
 .grid {
+  isolation: isolate; /* keeps the fades' z-index inside the grid */
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--gap);
@@ -10,14 +11,81 @@
 }
 
 .column {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--gap);
 }
 
+/* Each column fades into the page over its last tiles, so the work melts
+   into the next section even where the columns end at different heights.
+   Eased like the hero's fade, so it has no visible start. Clicks and hovers
+   pass through to the tiles. */
+.column::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: clamp(120px, 20vw, 320px);
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--bg) 0%, transparent),
+    color-mix(in srgb, var(--bg) 12%, transparent) 25%,
+    color-mix(in srgb, var(--bg) 38%, transparent) 50%,
+    color-mix(in srgb, var(--bg) 72%, transparent) 75%,
+    var(--bg)
+  );
+  pointer-events: none;
+}
+
+/* Parallax: while the grid is in view each column scrolls a little faster
+   than the page, by its --drift (0.1 = 10% faster): the right column most,
+   the middle one half as much, the left one with the page. They line up when
+   the grid is centred in the window, so the faster columns start lower and
+   finish higher. Driven by the browser's scroll timeline, so the columns
+   keep pace with the scroll; where there isn't one, or with reduced motion,
+   the grid simply scrolls. 50% is half the column's own height, so the
+   travel spans the column's height plus the window's. */
+.column:nth-child(2) {
+  --drift: 0.1;
+}
+
+.column:nth-child(3) {
+  --drift: 0.2;
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .grid {
+      view-timeline: --work block;
+    }
+
+    .column {
+      animation: drift 1ms linear both;
+      animation-timeline: --work;
+    }
+  }
+}
+
+@keyframes drift {
+  from {
+    translate: 0 calc(var(--drift, 0) * (50% + 50vh));
+  }
+
+  to {
+    translate: 0 calc(var(--drift, 0) * (-50% - 50vh));
+  }
+}
+
 @media (max-width: 1024px) {
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .column:nth-child(2) {
+    --drift: 0.16;
   }
 }
 

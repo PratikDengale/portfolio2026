@@ -17,23 +17,44 @@ export const site = {
   },
 }
 
-// Masonry is authored as 3 explicit columns so every column ends level
-// (each column holds one 16:9, one 9:16, one 1:1). Do NOT use CSS columns.
+// Masonry is authored as blocks of 3 explicit columns, stacked top to
+// bottom. Within a block every column holds the same mix of ratios, so the
+// columns end level. Do NOT use CSS columns. A slot id is where its media is
+// saved: never rename one that has media (publishing drops unknown slots).
 const work = [
+  // Each column: one 16:9, one 9:16, one 1:1.
   [
-    { slot: 'work/fashion-film', ratio: '16/9', label: 'fashion film', alt: 'Fashion film' },
-    { slot: 'work/beauty-vertical', ratio: '9/16', label: 'beauty vertical', alt: 'Beauty vertical' },
-    { slot: 'work/lookbook-loop', ratio: '1/1', label: 'lookbook loop', alt: 'Lookbook loop' },
+    [
+      { slot: 'work/fashion-film', ratio: '16/9', label: 'fashion film', alt: 'Fashion film' },
+      { slot: 'work/beauty-vertical', ratio: '9/16', label: 'beauty vertical', alt: 'Beauty vertical' },
+      { slot: 'work/lookbook-loop', ratio: '1/1', label: 'lookbook loop', alt: 'Lookbook loop' },
+    ],
+    [
+      { slot: 'work/editorial', ratio: '1/1', label: 'editorial', alt: 'Editorial' },
+      { slot: 'work/aerial-tracking', ratio: '16/9', label: 'aerial tracking', alt: 'Aerial tracking shot' },
+      { slot: 'work/social-cut', ratio: '9/16', label: 'social cut', alt: 'Social cut' },
+    ],
+    [
+      { slot: 'work/swimwear-vertical', ratio: '9/16', label: 'swimwear vertical', alt: 'Swimwear vertical' },
+      { slot: 'work/product-loop', ratio: '1/1', label: 'product loop', alt: 'Product loop' },
+      { slot: 'work/brand-film', ratio: '16/9', label: 'brand film', alt: 'Brand film' },
+    ],
   ],
+  // Each column: one 16:9, one 9:16, ordered so no ratio sits on itself and
+  // neighbouring columns break at different heights.
   [
-    { slot: 'work/editorial', ratio: '1/1', label: 'editorial', alt: 'Editorial' },
-    { slot: 'work/aerial-tracking', ratio: '16/9', label: 'aerial tracking', alt: 'Aerial tracking shot' },
-    { slot: 'work/social-cut', ratio: '9/16', label: 'social cut', alt: 'Social cut' },
-  ],
-  [
-    { slot: 'work/swimwear-vertical', ratio: '9/16', label: 'swimwear vertical', alt: 'Swimwear vertical' },
-    { slot: 'work/product-loop', ratio: '1/1', label: 'product loop', alt: 'Product loop' },
-    { slot: 'work/brand-film', ratio: '16/9', label: 'brand film', alt: 'Brand film' },
+    [
+      { slot: 'work/event-vertical', ratio: '9/16', label: 'event vertical', alt: 'Event film, vertical' },
+      { slot: 'work/music-video', ratio: '16/9', label: 'music video', alt: 'Music video' },
+    ],
+    [
+      { slot: 'work/campaign-film', ratio: '16/9', label: 'campaign film', alt: 'Campaign film' },
+      { slot: 'work/music-vertical', ratio: '9/16', label: 'music vertical', alt: 'Music video, vertical' },
+    ],
+    [
+      { slot: 'work/campaign-vertical', ratio: '9/16', label: 'campaign vertical', alt: 'Campaign film, vertical' },
+      { slot: 'work/event-film', ratio: '16/9', label: 'event film', alt: 'Event film' },
+    ],
   ],
 ]
 
@@ -46,9 +67,9 @@ const services = [
 const pad = (n) => String(n).padStart(2, '0')
 
 // An empty tile is captioned with its number within its section: 01, 02, …
-// Work is counted down each authored column in turn.
+// Work is counted block by block, down each authored column in turn.
 const numbers = new Map(
-  [work.flat(), services].flatMap((items) => items.map(({ slot }, i) => [slot, pad(i + 1)])),
+  [work.flat(2), services].flatMap((items) => items.map(({ slot }, i) => [slot, pad(i + 1)])),
 )
 
 // Client logos are fixed files in public/clients/, not CMS slots, shown in
@@ -65,11 +86,9 @@ export const clients = [
   { name: 'Jameson', logo: '/clients/jameson.png', height: 30 },
   { name: 'Ajio', logo: '/clients/ajio.svg', height: 22 },
   { name: 'Simba', logo: '/clients/simba.png', height: 24 },
-  { name: 'FILA', logo: '/clients/fila.svg', height: 22 },
   { name: 'TVS', logo: '/clients/tvs.svg', height: 24 },
   { name: 'Saregama', logo: '/clients/saregama.png', height: 40 },
   { name: 'Amazon Music', logo: '/clients/amazon-music.svg', height: 26 },
-  { name: 'Heineken', logo: '/clients/heineken.svg', height: 26 },
 ]
 
 export const about = {
@@ -86,7 +105,7 @@ export const about = {
 // the default shown while the slot is empty.
 export const slots = [
   { id: 'reel', group: 'Hero', label: 'Showreel', ratio: '16/9', accepts: 'video' },
-  ...work.flat().map(({ slot, label, ratio }) => ({
+  ...work.flat(2).map(({ slot, label, ratio }) => ({
     id: slot,
     group: 'Selected work',
     label,
@@ -117,8 +136,10 @@ export function resolveContent(manifest) {
 
   return {
     reel: clip('reel'),
-    work: work.map((column) =>
-      column.map((item) => ({ ...item, label: numbers.get(item.slot), ...clip(item.slot) })),
+    work: work.map((block) =>
+      block.map((column) =>
+        column.map((item) => ({ ...item, label: numbers.get(item.slot), ...clip(item.slot) })),
+      ),
     ),
     services: services.map((item) => ({ ...item, label: numbers.get(item.slot), ...clip(item.slot) })),
     portrait: { src: entry('portrait').image ?? null, caption: entry('portrait').caption ?? null },

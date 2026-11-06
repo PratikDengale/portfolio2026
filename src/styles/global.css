@@ -12,13 +12,15 @@
   --footer-bg: #ecebe7; /* inverted footer */
   --footer-ink: #0b0b0a;
   --footer-muted: #6f6e6a;
+  --footer-rule: rgba(11, 11, 10, 0.12);
   --rec: oklch(0.66 0.21 27);
 
   --gutter: 40px; /* page side padding at 1440 */
   --gap: 24px; /* grid gap */
   --section: 160px; /* space above a section */
-  --section-first: 120px; /* space between hero and first section */
+  --section-first: 88px; /* space between hero and first section */
   --bar-pad: 28px; /* top bar vertical padding */
+  --bar-pad-top: 12px; /* space above the top bar: --bar-pad less 16px */
   --frost-height: 96px; /* the fixed frosted strip at the top */
   --font-sans: 'Geist Variable', 'Geist', system-ui, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, monospace;
@@ -27,7 +29,7 @@
 @media (max-width: 1024px) {
   :root {
     --section: 120px;
-    --section-first: 96px;
+    --section-first: 64px;
   }
 }
 
@@ -42,8 +44,9 @@
     --gutter: 20px;
     --gap: 16px;
     --section: 88px;
-    --section-first: 72px;
+    --section-first: 40px;
     --bar-pad: 16px;
+    --bar-pad-top: 16px;
   }
 }
 

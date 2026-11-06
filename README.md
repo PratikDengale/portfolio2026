@@ -13,7 +13,7 @@ npm run lint
 
 ## Media manager (`/admin`)
 
-Every video, image and logo on the home page is a slot that can be filled, replaced or removed at `/admin`: the hero showreel, the nine work tiles, the three service cards, the twelve client logos (with their names) and the portrait. Empty slots show the hatched placeholder on the site.
+Every video, image and logo on the home page is a slot that can be filled, replaced or removed at `/admin`: the hero showreel, the fifteen work tiles, the three service cards, the twelve client logos (with their names) and the portrait. Empty slots show the hatched placeholder on the site.
 
 Changes are staged in the browser and nothing is uploaded or shown on the site until **Publish**. The live site picks up a publish within a minute or two.
 
@@ -24,7 +24,7 @@ Changes are staged in the browser and nothing is uploaded or shown on the site u
 - Work tiles, service cards and the portrait have an optional caption: the small text at the bottom-left of the tile. An empty slot shows it over the placeholder; a filled slot shows text only if a caption is set.
 - Replaced and removed files are deleted from Bunny on publish.
 
-On the site, every video has play/pause and sound buttons (top-left of the hero, bottom-right of tiles; on desktop the tile buttons appear on hover). Videos play muted while on screen; sound needs a click, only one video has sound at a time, and a video pauses when scrolled away. With Reduce Motion on, nothing autoplays.
+On the site, every tile video has play/pause and sound buttons (bottom-right; on desktop they appear on hover). The hero showreel has none: it always plays muted. Videos play muted while on screen; sound needs a click, only one video has sound at a time, and a video pauses when scrolled away. With Reduce Motion on, nothing autoplays.
 
 ### Setting it up (once)
 

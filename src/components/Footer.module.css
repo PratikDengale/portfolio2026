@@ -6,6 +6,7 @@
 }
 
 .inner {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -13,6 +14,15 @@
   min-height: var(--footer-height);
   padding: var(--gutter);
   background: var(--footer-bg);
+}
+
+/* The hanging ID card, over the footer's content. Clicks pass through it to
+   what's underneath. */
+.idCard {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
 }
 
 /* Reveal: the footer's box scrolls with the page as usual but only acts as a
@@ -43,6 +53,12 @@
   gap: var(--gap);
 }
 
+/* The bottom row, under a light rule. */
+.base {
+  padding-top: 24px;
+  border-top: 1px solid var(--footer-rule);
+}
+
 .label {
   color: var(--footer-muted);
 }
@@ -54,41 +70,48 @@
   color: var(--footer-muted);
 }
 
-.middle {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 36px;
-}
-
-.email {
-  font-size: clamp(28px, 5.4vw, 64px);
+/* The ways to get in touch, one per line at one size: Instagram, WhatsApp,
+   then the email, with red rules between them that fade out to the right,
+   reaching the middle of the footer (or the end of the longest line, if
+   that is further). The icons scale with the text. */
+.actions {
+  align-self: flex-start;
+  min-width: 50%;
+  font-size: clamp(24px, 2.8vw, 40px); /* 40px at 1440 */
   font-weight: 500;
-  line-height: 1;
+  line-height: 1.1;
   letter-spacing: -0.04em;
 }
 
-.icons {
+.actions li + li {
+  position: relative;
+  margin-top: calc(0.5em + 8px);
+  padding-top: calc(0.5em + 8px);
+}
+
+.actions li + li::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: linear-gradient(to right, var(--rec), transparent);
+}
+
+.action {
   display: flex;
   align-items: center;
-  gap: 28px;
+  gap: 0.35em;
+  width: fit-content;
 }
 
-.social {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.action svg {
+  width: 0.8em;
+  height: 0.8em;
 }
 
-.handle {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  line-height: 1;
-  letter-spacing: 0.04em;
-}
-
-.email:hover,
-.icons a:hover {
+.action:hover {
   opacity: 1;
   color: var(--footer-muted);
 }
@@ -99,7 +122,7 @@
 }
 
 @media (max-width: 640px) {
-  .email {
+  .actions {
     overflow-wrap: anywhere;
   }
 }

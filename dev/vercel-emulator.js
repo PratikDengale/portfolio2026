@@ -105,6 +105,60 @@ function serveLocalFile(req, res, pathname) {
   createReadStream(file, { start, end }).pipe(res)
 }
 
+// Optional: LIVE_SITE=https://… in .env.local shows the live site's media
+// instead of .cms/. GET /api/content comes from the live site with every
+// file pointed at /_live/, and those are fetched from bunny.net with the live
+// site as referrer: its hotlink protection turns away pages on localhost.
+// Only hosts named in the live content are fetched. /admin is unaffected.
+const LIVE_URL = '/_live/'
+const liveHosts = new Set()
+
+async function liveContent(site) {
+  const response = await fetch(new URL('/api/content', site))
+  if (!response.ok) return Response.json({ media: {} }, { headers: { 'Cache-Control': 'no-store' } })
+  const content = await response.json()
+  for (const entry of Object.values(content.media ?? {})) {
+    for (const field of ['video', 'image', 'thumbnail']) {
+      const url = URL.canParse(entry[field]) && new URL(entry[field])
+      if (url?.protocol !== 'https:') continue
+      liveHosts.add(url.host)
+      entry[field] = `${LIVE_URL}${url.host}${url.pathname}`
+    }
+  }
+  return Response.json(content, { headers: { 'Cache-Control': 'no-store' } })
+}
+
+// Streams one live file, passing Range through for video seeking.
+async function serveLiveFile(req, res, site, pathname) {
+  const [host, ...rest] = pathname.slice(LIVE_URL.length).split('/')
+  if (!liveHosts.has(host)) {
+    res.statusCode = 404
+    return res.end('Not found')
+  }
+  const abort = new AbortController()
+  res.on('close', () => abort.abort())
+  let upstream
+  try {
+    upstream = await fetch(`https://${host}/${rest.join('/')}`, {
+      headers: { Referer: new URL('/', site).href, ...(req.headers.range ? { Range: req.headers.range } : {}) },
+      signal: abort.signal,
+    })
+  } catch (error) {
+    // The browser dropped the request (a seek, a reload) before bunny.net
+    // answered: nothing to send.
+    if (abort.signal.aborted) return
+    throw error
+  }
+  res.statusCode = upstream.status
+  for (const name of ['content-type', 'content-length', 'content-range', 'accept-ranges', 'cache-control']) {
+    if (upstream.headers.has(name)) res.setHeader(name, upstream.headers.get(name))
+  }
+  if (!upstream.body) return res.end()
+  Readable.fromWeb(upstream.body)
+    .on('error', () => res.destroy())
+    .pipe(res)
+}
+
 export default function vercelEmulator() {
   let root
 
@@ -112,6 +166,12 @@ export default function vercelEmulator() {
     try {
       const url = new URL(req.url, `http://${req.headers.host}`)
       const { pathname } = url
+      const live = process.env.LIVE_SITE
+      if (live && req.method === 'GET') {
+        if (pathname === '/api/content') return send(res, await liveContent(live))
+        // Awaited so a failure reaches the catch below instead of crashing Vite.
+        if (pathname.startsWith(LIVE_URL)) return await serveLiveFile(req, res, live, pathname)
+      }
       const isApi = pathname.startsWith('/api/')
       const isLocalStore = pathname.startsWith(LOCAL_URL)
       const isAdmin = pathname === '/admin' || pathname.startsWith('/admin/')

@@ -1,19 +1,34 @@
 import { useContent } from '../hooks/useContent'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import Media from './Media'
-import SectionHead from './SectionHead'
 import styles from './SelectedWork.module.css'
 
-// Re-deals the authored columns for narrower layouts: one column keeps the
-// authored order, anything else is dealt round-robin from row-major order.
-function arrange(columns, count) {
-  if (count === columns.length) return columns
-  if (count === 1) return [columns.flat()]
-  const rows = Math.max(...columns.map((column) => column.length))
-  const rowMajor = Array.from({ length: rows }, (_, row) => columns.map((column) => column[row]))
-    .flat()
-    .filter(Boolean)
-  return Array.from({ length: count }, (_, c) => rowMajor.filter((_, i) => i % count === c))
+// A tile's height per unit of column width: 16/9 → 0.5625.
+const heightOf = ({ ratio }) => {
+  const [width, height] = ratio.split('/').map(Number)
+  return height / width
+}
+
+// Lays the authored blocks out in `count` columns. At the authored count each
+// column runs on through every block, and one column keeps the authored order.
+// Anything else takes the tiles in reading order (block by block, row by row)
+// and puts each in the shortest column so far, so the columns end close to
+// level and later blocks stay at the bottom.
+function arrange(blocks, count) {
+  if (count === 1) return [blocks.flat(2)]
+  if (count === blocks[0].length) return blocks[0].map((_, c) => blocks.flatMap((block) => block[c]))
+  const columns = Array.from({ length: count }, () => ({ items: [], height: 0 }))
+  for (const block of blocks) {
+    const rows = Math.max(...block.map((column) => column.length))
+    for (let row = 0; row < rows; row++) {
+      for (const item of block.map((column) => column[row]).filter(Boolean)) {
+        const shortest = columns.reduce((a, b) => (b.height < a.height ? b : a))
+        shortest.items.push(item)
+        shortest.height += heightOf(item)
+      }
+    }
+  }
+  return columns.map(({ items }) => items)
 }
 
 export default function SelectedWork() {
@@ -24,8 +39,7 @@ export default function SelectedWork() {
   const columns = arrange(work, single ? 1 : double ? 2 : 3)
 
   return (
-    <section id="work" className={styles.section} aria-labelledby="work-title">
-      <SectionHead id="work-title">Selected work</SectionHead>
+    <section id="work" className={styles.section} aria-label="Selected work">
       <div className={styles.grid}>
         {columns.map((column, i) => (
           <div key={i} className={styles.column}>

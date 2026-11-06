@@ -37,7 +37,7 @@
   flex: none;
   align-items: center;
   justify-content: space-between;
-  padding: var(--bar-pad) var(--gutter);
+  padding: var(--bar-pad-top) var(--gutter) var(--bar-pad);
 }
 
 .links {

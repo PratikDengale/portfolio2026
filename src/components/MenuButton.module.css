@@ -6,9 +6,9 @@
   gap: 7px;
   width: 44px;
   height: 44px;
-  /* 28px lines centred in a 44px box: pull the box out so the line ends sit
+  /* 24px lines centred in a 44px box: pull the box out so the line ends sit
      exactly on the gutter. */
-  margin-right: -8px;
+  margin-right: -10px;
   color: var(--ink);
 }
 
@@ -17,7 +17,7 @@
 }
 
 .line {
-  width: 28px;
+  width: 24px;
   height: 1.5px;
   background: currentColor;
 }
