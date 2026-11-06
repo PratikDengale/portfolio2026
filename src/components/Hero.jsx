@@ -51,16 +51,18 @@ function baselineOf(element) {
 
 // The preloader: the wordmark plays it itself, so the letters that form in
 // the middle of the blank screen are the very ones that end up in the hero.
+// Seconds the blank screen holds before the preloader begins.
+const PRELOAD_DELAY = 1
 // Times in seconds from the start. The parting and landing ease in and out
 // slowly, so each begins just before the step before it visibly settles:
 // one runs on into the next without a pause.
 const PRELOAD = {
   initials: 0.1, // P rises and D drops into the middle, a line drawing in between from the screen's edges
-  name: 1.45, // they part to their places as the rest of the name unfolds, and the line swings flat below it
-  land: 2.55, // the blank screen parts at the line like a curtain as the name grows into the hero
+  name: 1.25, // they part to their places as the rest of the name unfolds, and the line swings flat below it
+  land: 2.35, // the blank screen parts at the line like a curtain as the name grows into the hero
 }
 // P and D's way in: how far each travels (px on screen) and for how long.
-const INITIALS_IN = { travel: 160, duration: 1.8 }
+const INITIALS_IN = { travel: 200, duration: 1.8 }
 // The accent line, which ends up fixed along the bottom of the screen,
 // starts as the upright line between P and D, drawn in from the top and
 // bottom edges of the screen. Over `turn` seconds it swings flat and drops
@@ -359,14 +361,16 @@ export default function Hero({ menuOpen, onOpenMenu }) {
             release()
           }
           intro = gsap
-            .timeline({ defaults: { ease: EASE }, onComplete: finish })
+            .timeline({ delay: PRELOAD_DELAY, defaults: { ease: EASE }, onComplete: finish })
             // 1. P rises and D drops into the middle.
             .from(chars[p], { y: rise, duration: INITIALS_IN.duration, ease: 'power3.out' }, PRELOAD.initials)
             .from(chars[d], { y: -rise, duration: INITIALS_IN.duration, ease: 'power3.out' }, PRELOAD.initials)
             .to([chars[p], chars[d]], { autoAlpha: 1, duration: INITIALS_IN.duration * 0.75, ease: 'power1.out' }, PRELOAD.initials)
-            //    The line between them fades in, drawing in from its ends.
-            .to(line, { autoAlpha: 1, duration: INITIALS_IN.duration * 0.6, ease: 'power1.out' }, PRELOAD.initials + 0.1)
-            .to(halves, { scaleX: 1, duration: INITIALS_IN.duration - 0.4, ease: 'power3.inOut' }, PRELOAD.initials + 0.1)
+            //    The line between them draws in from its ends along with them:
+            //    same start, fade and easing, a little quicker, so its halves
+            //    have met before it turns.
+            .to(line, { autoAlpha: 1, duration: INITIALS_IN.duration * 0.75, ease: 'power1.out' }, PRELOAD.initials)
+            .to(halves, { scaleX: 1, duration: INITIALS_IN.duration - 0.5, ease: 'power3.out' }, PRELOAD.initials)
             // 2. They part to their places in the name, and the rest of it
             //    unfolds between and beside them.
             .to([chars[p], chars[d]], { x: (i) => kerning[[p, d][i]], duration: PARTING.duration, ease: PARTING.ease }, PRELOAD.name)
