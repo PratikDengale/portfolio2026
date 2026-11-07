@@ -3,6 +3,7 @@ import { site } from '../data/content'
 import { useContent } from '../hooks/useContent'
 import { useFitText } from '../hooks/useFitText'
 import { markIntroDone } from '../hooks/useIntro'
+import { holdScroll } from '../hooks/useSmoothScroll'
 import { EASE, gsap, MOTION_OK, SplitText, useGSAP } from '../hooks/useReveal'
 import { useVideoPlayback } from '../hooks/useVideoPlayback'
 import MenuButton from './MenuButton'
@@ -157,12 +158,14 @@ export default function Hero({ menuOpen, onOpenMenu }) {
         const holdKeys = (event) =>
           ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key) &&
           event.preventDefault()
+        holdScroll(true)
         window.addEventListener('wheel', hold, { passive: false })
         window.addEventListener('touchmove', hold, { passive: false })
         window.addEventListener('keydown', holdKeys)
         // Scrolling comes back once the curtain is gone, while the bar is
         // still fading in.
         const letScroll = () => {
+          holdScroll(false)
           window.removeEventListener('wheel', hold)
           window.removeEventListener('touchmove', hold)
           window.removeEventListener('keydown', holdKeys)

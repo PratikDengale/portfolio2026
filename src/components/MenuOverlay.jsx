@@ -26,7 +26,8 @@ export default function MenuOverlay({ open, onClose }) {
   const close = () => ref.current.close()
 
   return (
-    <dialog ref={ref} className={styles.overlay} aria-label="Menu" onClose={onClose}>
+    // data-lenis-prevent: the wheel over the open menu doesn't scroll the page.
+    <dialog ref={ref} className={styles.overlay} aria-label="Menu" onClose={onClose} data-lenis-prevent>
       <div className={styles.bar}>
         <RecDot />
         <MenuButton close onClick={close} />

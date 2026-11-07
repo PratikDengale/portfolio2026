@@ -92,6 +92,23 @@ html:has(dialog[open]) {
   }
 }
 
+/* Lenis smooth scrolling (see useSmoothScroll), from its own stylesheet,
+   less the rule that hides the page's overflow while it is stopped: that
+   would take the scrollbar away, and change the page's width, while the
+   preloader holds the page still. */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
 /* Section links land below the frosted strip, not under it. */
 html {
   scroll-padding-top: var(--frost-height);

@@ -8,6 +8,7 @@ import MenuOverlay from './components/MenuOverlay'
 import SelectedWork from './components/SelectedWork'
 import Services from './components/Services'
 import { useReveal } from './hooks/useReveal'
+import { useSmoothScroll } from './hooks/useSmoothScroll'
 
 export default function App() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -19,6 +20,7 @@ export default function App() {
     if (id) document.getElementById(id)?.scrollIntoView({ behavior: 'instant' })
   }, [])
   useReveal()
+  useSmoothScroll()
 
   return (
     <ContentProvider>
