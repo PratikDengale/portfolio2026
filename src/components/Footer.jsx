@@ -12,12 +12,23 @@ const IdCard = lazy(() => import('./IdCard'))
 
 const year = new Date().getFullYear()
 
+// The card's placement (see Lanyard): `size` is its height as a share of the
+// box it hangs in, `anchor` where across that box the strap comes from, and
+// `strapLength` how far down it hangs. On desktops and tablets the box is the
+// whole footer and the card hangs in its right half, over the content (at
+// 78%, which keeps it clear of the email down to tablet widths); up to tablet
+// widths the email runs close to it, so it is smaller there. On phones the
+// box is a strip of its own across the top of the footer, above the contact
+// details (see Footer.module.css), and the card hangs in its middle.
+const CARD = {
+  desktop: { anchor: 0.78, size: 0.52, strapLength: 0.57 },
+  tablet: { anchor: 0.78, size: 0.42, strapLength: 0.57 },
+  phone: { anchor: 0.5, size: 0.72, strapLength: 0.15 },
+}
+
 export default function Footer() {
   const footer = useRef(null)
-  // On phones the card would hang over the email; there's no room for it.
   const phone = useMediaQuery('(max-width: 640px)')
-  // Larger on desktop. Up to tablet widths the email runs close to the card,
-  // so it keeps its smaller size there.
   const desktop = useMediaQuery('(min-width: 1025px)')
   // The card enters (drops in on its strap) once the About section's bottom
   // edge, which is the footer's top, has scrolled up to the middle of the
@@ -55,18 +66,15 @@ export default function Footer() {
     // timed by the footer's own box as it scrolls up.
     <footer id="contact" className={styles.footer} aria-labelledby="contact-title" data-reveal-scope ref={footer}>
       <div className={styles.inner}>
-        {/* Hangs from the footer's top edge, in the right half (at 78%, which
-            keeps it clear of the email down to tablet widths), over the
-            content; only the card itself catches the pointer. It is seen
-            through the footer's box, so that is what it watches. */}
-        {!phone && cardWanted && (
+        {/* Hangs from the footer's top edge (see CARD); only the card itself
+            catches the pointer. It is seen through the footer's box, so that
+            is what it watches. */}
+        {cardWanted && (
           <div className={styles.idCard}>
             <Suspense fallback={null}>
               <IdCard
                 watch={footer}
-                anchor={0.78}
-                size={desktop ? 0.52 : 0.42}
-                strapLength={0.57}
+                {...CARD[phone ? 'phone' : desktop ? 'desktop' : 'tablet']}
                 hold={!cardEntered && !reducedMotion}
               />
             </Suspense>

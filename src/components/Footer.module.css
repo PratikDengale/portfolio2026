@@ -16,8 +16,8 @@
   background: var(--footer-bg);
 }
 
-/* The hanging ID card, over the footer's content. Clicks pass through it to
-   what's underneath. */
+/* The hanging ID card, over the footer's content (on phones, above it; see
+   the end). Clicks pass through it to what's underneath. */
 .idCard {
   position: absolute;
   z-index: 1;
@@ -121,7 +121,23 @@
   color: var(--footer-ink);
 }
 
+/* Phones: taller, and the card hangs in a strip of its own across the top,
+   from the footer's top edge, taking the height the contact details leave
+   (so it never covers them); closer to them than the usual gap, as the card
+   ends well above the strip's bottom. */
 @media (max-width: 640px) {
+  .footer {
+    --footer-height: 700px;
+  }
+
+  .idCard {
+    position: relative;
+    inset: auto;
+    flex: 1 1 0;
+    min-height: 0;
+    margin: calc(-1 * var(--gutter)) calc(-1 * var(--gutter)) -24px;
+  }
+
   .actions {
     overflow-wrap: anywhere;
   }
