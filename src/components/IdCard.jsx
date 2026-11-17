@@ -4,8 +4,8 @@ import Lanyard from './Lanyard'
 
 // The hanging ID card. Its faces are drawn here from the site's copy, fonts
 // and colours, so the card never goes stale; the strap is plain. A dark card,
-// to stand out on the light footer it hangs in. The back is a photo, with a
-// mark over it.
+// to stand out on the light footer it hangs in. The front is a photo with
+// the name over it; the back has the dot grid and a mark.
 
 // A face in canvas pixels: the Lanyard's portrait card (1.6 × 2.25 units) at
 // its 1024px face width. The strap slot is a pill around the top centre
@@ -13,11 +13,19 @@ import Lanyard from './Lanyard'
 const W = 1024
 const H = 1440
 const MARGIN = 88
+// Where text rests at the bottom of a face (its lowest ink).
+const BOTTOM = 96
 
-// The dot grid above the name: rows of faint dots, one of them in the site's
-// red (third row from the bottom, sixth column). The columns span the margins
-// (106px apart); rows are spaced a little wider. In face pixels: the card
-// shows at about 1/4.7 of this size on a desktop screen.
+// The front's photo. It is taller than the card, so it is cropped at the top
+// and sits on the bottom edge, which keeps the figure's head and shoulders
+// clear above the name. `zoom`: how much larger than just covering the card;
+// zooming in from the bottom edge also lifts the figure.
+const FRONT_PHOTO = { src: '/id-card-front.jpg', zoom: 1.15 }
+
+// The back's dot grid, under the strap slot: rows of faint dots, one of them
+// in the site's red (third row from the bottom, sixth column). The columns
+// span the margins (106px apart); rows are spaced a little wider. In face
+// pixels: the card shows at about 1/4.7 of this size on a desktop screen.
 const COLUMNS = 8
 const ROWS = 6
 const GRID_TOP = 120
@@ -25,10 +33,8 @@ const DOT = 75
 const ROW_PITCH = 115
 const ACCENT = { fromBottom: 3, column: 5 }
 
-// The back: the photo, filling the card, and the mark at the top, its
-// capitals' top this far down (just under the strap slot), at `size`.
-const BACK_PHOTO = '/id-card-back.jpg'
-const BACK_MARK = { text: 'AAA', top: 165, size: 120 }
+// The back's mark, on the bottom edge, as large as fits between the margins.
+const BACK_MARK = 'AAA'
 
 function canvas(width, height) {
   const element = document.createElement('canvas')
@@ -72,23 +78,36 @@ function drawGlow(ctx, rec) {
   ctx.restore()
 }
 
-function drawFront(ctx, { paper, ink, rec, sans }) {
+function drawFront(ctx, { paper, ink, sans }, photo) {
   ctx.fillStyle = paper
   ctx.fillRect(0, 0, W, H)
-  drawGlow(ctx, rec)
+  // The photo covers the card, centred across it and sitting on its bottom
+  // edge.
+  if (photo) {
+    const scale = Math.max(W / photo.naturalWidth, H / photo.naturalHeight) * FRONT_PHOTO.zoom
+    const [width, height] = [photo.naturalWidth * scale, photo.naturalHeight * scale]
+    ctx.drawImage(photo, (W - width) / 2, H - height, width, height)
+  }
 
-  // The name as large as it fits, its descenders resting on the bottom margin.
+  // The name over it, as large as it fits, its descenders resting on the
+  // bottom margin.
   const lines = site.name.split(' ')
   setFont(ctx, sans, 100, -0.055)
   const widest = Math.max(...lines.map((line) => ctx.measureText(line).width))
   const size = Math.floor(((W - MARGIN * 2) / widest) * 100)
   setFont(ctx, sans, size, -0.055)
   ctx.fillStyle = ink
-  const last = H - 96 - ctx.measureText(lines.at(-1)).actualBoundingBoxDescent
+  const last = H - BOTTOM - ctx.measureText(lines.at(-1)).actualBoundingBoxDescent
   const first = last - (lines.length - 1) * size * 0.92
   lines.forEach((line, i) => ctx.fillText(line, MARGIN - size * 0.04, first + i * size * 0.92))
+}
 
-  // Between the strap slot and the name, about a row's height clear of it.
+function drawBack(ctx, { paper, ink, rec, sans }) {
+  ctx.fillStyle = paper
+  ctx.fillRect(0, 0, W, H)
+  drawGlow(ctx, rec)
+
+  // The dot grid, under the strap slot.
   const pitch = (W - MARGIN * 2) / COLUMNS
   for (let row = 0; row < ROWS; row++) {
     for (let column = 0; column < COLUMNS; column++) {
@@ -101,33 +120,23 @@ function drawFront(ctx, { paper, ink, rec, sans }) {
     }
   }
   ctx.globalAlpha = 1
-}
 
-function drawBack(ctx, { paper, ink, sans }, photo) {
-  ctx.fillStyle = paper
-  ctx.fillRect(0, 0, W, H)
-  // The photo covers the card, centred, cropped top and bottom (it is a
-  // little taller than the card).
-  if (photo) {
-    const scale = Math.max(W / photo.naturalWidth, H / photo.naturalHeight)
-    const [width, height] = [photo.naturalWidth * scale, photo.naturalHeight * scale]
-    ctx.drawImage(photo, (W - width) / 2, (H - height) / 2, width, height)
-  }
-
-  // The mark, centred under the strap slot, no wider than the margins allow.
-  const { text, top, size: wanted } = BACK_MARK
-  ctx.textAlign = 'center'
-  setFont(ctx, sans, wanted, -0.06)
-  const size = Math.min(wanted, Math.floor((wanted * (W - MARGIN * 2)) / ctx.measureText(text).width))
+  // The mark, its ink running from margin to margin, resting on the bottom
+  // margin.
+  setFont(ctx, sans, 100, -0.06)
+  const probe = ctx.measureText(BACK_MARK)
+  const size = (100 * (W - MARGIN * 2)) / (probe.actualBoundingBoxLeft + probe.actualBoundingBoxRight)
   setFont(ctx, sans, size, -0.06)
+  const mark = ctx.measureText(BACK_MARK)
   ctx.fillStyle = ink
-  ctx.fillText(text, W / 2, top + ctx.measureText(text).actualBoundingBoxAscent)
+  ctx.fillText(BACK_MARK, MARGIN + mark.actualBoundingBoxLeft, H - BOTTOM - mark.actualBoundingBoxDescent)
 }
 
-// The back's photo, decoded; null if it can't be had (the back is then plain).
+// The front's photo, decoded; null if it can't be had (the front is then
+// plain).
 async function loadPhoto() {
   const photo = new Image()
-  photo.src = BACK_PHOTO
+  photo.src = FRONT_PHOTO.src
   try {
     await photo.decode()
     return photo
@@ -157,7 +166,7 @@ async function drawCard() {
   // A canvas draws with whatever font is loaded at that moment.
   const [photo] = await Promise.all([
     loadPhoto(),
-    document.fonts.load(`600 100px ${theme.sans.family}`, `${site.name} ${BACK_MARK.text}`),
+    document.fonts.load(`600 100px ${theme.sans.family}`, `${site.name} ${BACK_MARK}`),
   ])
 
   const face = (draw) => {
@@ -166,8 +175,8 @@ async function drawCard() {
     return element.toDataURL('image/png')
   }
   return {
-    front: face((ctx) => drawFront(ctx, theme)),
-    back: face((ctx) => drawBack(ctx, theme, photo)),
+    front: face((ctx) => drawFront(ctx, theme, photo)),
+    back: face((ctx) => drawBack(ctx, theme)),
     strap: drawStrap(),
     paper: theme.paper,
   }

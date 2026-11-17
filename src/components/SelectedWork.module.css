@@ -40,14 +40,15 @@
   pointer-events: none;
 }
 
-/* Parallax: while the grid is in view each column scrolls a little faster
-   than the page, by its --drift (0.1 = 10% faster): the right column most,
-   the middle one half as much, the left one with the page. They line up when
-   the grid is centred in the window, so the faster columns start lower and
-   finish higher. Driven by the browser's scroll timeline, so the columns
-   keep pace with the scroll; where there isn't one, or with reduced motion,
-   the grid simply scrolls. 50% is half the column's own height, so the
-   travel spans the column's height plus the window's. */
+/* Parallax: the columns come into view top-aligned and stay so until the
+   grid's top reaches the middle of the window. From there on each column
+   scrolls a little faster than the page, by its --drift (0.1 = 10% faster):
+   the right column most, the middle one half as much, the left one with the
+   page, until the grid has left the window. Driven by the browser's scroll
+   timeline, so the columns keep pace with the scroll; where there isn't
+   one, or with reduced motion, the grid simply scrolls. Over that stretch
+   the page scrolls half the window's height plus the grid's (100%: the
+   column's own height, near enough), so that is what the drift is a share of. */
 .column:nth-child(2) {
   --drift: 0.1;
 }
@@ -65,17 +66,20 @@
     .column {
       animation: drift 1ms linear both;
       animation-timeline: --work;
+      /* From the grid's top at the middle of the window (the timeline starts
+         with it at the bottom) to the grid's bottom at the top. */
+      animation-range: cover 50vh cover 100%;
     }
   }
 }
 
 @keyframes drift {
   from {
-    translate: 0 calc(var(--drift, 0) * (50% + 50vh));
+    translate: 0 0;
   }
 
   to {
-    translate: 0 calc(var(--drift, 0) * (-50% - 50vh));
+    translate: 0 calc(var(--drift, 0) * (-100% - 50vh));
   }
 }
 
