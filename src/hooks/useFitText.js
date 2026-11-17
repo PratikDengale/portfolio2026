@@ -54,16 +54,19 @@ export function useFitText(text, { alignStart, alignEnd, onFitted } = {}) {
     }
 
     // Measuring against a fallback face gives the wrong size, so the text is
-    // only marked as fitted (and revealed) once its own font is in.
-    const style = getComputedStyle(el)
+    // only marked as fitted (and revealed) once its own font is in, and the
+    // fonts of the labels it aligns to.
     const reveal = () => {
       fit()
       el.dataset.fitted = ''
       onFitted?.current?.()
     }
-    document.fonts
-      .load(`${style.fontStyle} ${style.fontWeight} 1em ${style.fontFamily}`, text)
-      .then(reveal, reveal)
+    const fontOf = (node) => {
+      const style = getComputedStyle(node)
+      return document.fonts.load(`${style.fontStyle} ${style.fontWeight} 1em ${style.fontFamily}`, node.textContent)
+    }
+    const measured = [el, alignStart?.current, alignEnd?.current].filter(Boolean)
+    Promise.all(measured.map(fontOf)).then(reveal, reveal)
 
     // Refit when the viewport changes, and when the labels we align to swap
     // fonts. (Not a ResizeObserver on the box: fitting changes the box's own

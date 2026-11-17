@@ -4,7 +4,8 @@ import Lanyard from './Lanyard'
 
 // The hanging ID card. Its faces are drawn here from the site's copy, fonts
 // and colours, so the card never goes stale; the strap is plain. A dark card,
-// to stand out on the light footer it hangs in.
+// to stand out on the light footer it hangs in. The back is a photo, with a
+// mark over it.
 
 // A face in canvas pixels: the Lanyard's portrait card (1.6 × 2.25 units) at
 // its 1024px face width. The strap slot is a pill around the top centre
@@ -23,6 +24,11 @@ const GRID_TOP = 120
 const DOT = 75
 const ROW_PITCH = 115
 const ACCENT = { fromBottom: 3, column: 5 }
+
+// The back: the photo, filling the card, and the mark at the top, its
+// capitals' top this far down (just under the strap slot), at `size`.
+const BACK_PHOTO = '/id-card-back.jpg'
+const BACK_MARK = { text: 'AAA', top: 165, size: 120 }
 
 function canvas(width, height) {
   const element = document.createElement('canvas')
@@ -97,19 +103,37 @@ function drawFront(ctx, { paper, ink, rec, sans }) {
   ctx.globalAlpha = 1
 }
 
-function drawBack(ctx, { paper, ink, sans }) {
+function drawBack(ctx, { paper, ink, sans }, photo) {
   ctx.fillStyle = paper
   ctx.fillRect(0, 0, W, H)
-  ctx.textAlign = 'center'
+  // The photo covers the card, centred, cropped top and bottom (it is a
+  // little taller than the card).
+  if (photo) {
+    const scale = Math.max(W / photo.naturalWidth, H / photo.naturalHeight)
+    const [width, height] = [photo.naturalWidth * scale, photo.naturalHeight * scale]
+    ctx.drawImage(photo, (W - width) / 2, (H - height) / 2, width, height)
+  }
 
-  // Monogram.
-  const initials = site.name
-    .split(' ')
-    .map((word) => word[0])
-    .join('')
-  setFont(ctx, sans, 420, -0.06)
+  // The mark, centred under the strap slot, no wider than the margins allow.
+  const { text, top, size: wanted } = BACK_MARK
+  ctx.textAlign = 'center'
+  setFont(ctx, sans, wanted, -0.06)
+  const size = Math.min(wanted, Math.floor((wanted * (W - MARGIN * 2)) / ctx.measureText(text).width))
+  setFont(ctx, sans, size, -0.06)
   ctx.fillStyle = ink
-  ctx.fillText(initials, W / 2, H / 2 + 110)
+  ctx.fillText(text, W / 2, top + ctx.measureText(text).actualBoundingBoxAscent)
+}
+
+// The back's photo, decoded; null if it can't be had (the back is then plain).
+async function loadPhoto() {
+  const photo = new Image()
+  photo.src = BACK_PHOTO
+  try {
+    await photo.decode()
+    return photo
+  } catch {
+    return null
+  }
 }
 
 // The strap: one plain tile of its colour, repeated along it by the Lanyard
@@ -131,7 +155,10 @@ async function drawCard() {
     sans: { family: value('--font-sans'), weight: 600 },
   }
   // A canvas draws with whatever font is loaded at that moment.
-  await document.fonts.load(`600 100px ${theme.sans.family}`, site.name)
+  const [photo] = await Promise.all([
+    loadPhoto(),
+    document.fonts.load(`600 100px ${theme.sans.family}`, `${site.name} ${BACK_MARK.text}`),
+  ])
 
   const face = (draw) => {
     const [element, ctx] = canvas(W, H)
@@ -140,7 +167,7 @@ async function drawCard() {
   }
   return {
     front: face((ctx) => drawFront(ctx, theme)),
-    back: face((ctx) => drawBack(ctx, theme)),
+    back: face((ctx) => drawBack(ctx, theme, photo)),
     strap: drawStrap(),
     paper: theme.paper,
   }

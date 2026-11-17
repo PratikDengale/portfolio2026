@@ -58,26 +58,20 @@ const PRELOAD_DELAY = 1
 // slowly, so each begins just before the step before it visibly settles:
 // one runs on into the next without a pause.
 const PRELOAD = {
-  initials: 0.1, // P rises and D drops into the middle, a line drawing in between from the screen's edges
-  name: 1.25, // they part to their places as the rest of the name unfolds, and the line swings flat below it
-  land: 2.35, // the blank screen parts at the line like a curtain as the name grows into the hero
+  initials: 0.1, // P rises and D drops into the middle
+  name: 1.25, // they part to their places as the rest of the name unfolds
+  land: 2.35, // the blank screen parts under the name like a curtain as it grows into the hero
 }
 // P and D's way in: how far each travels (px on screen) and for how long.
 const INITIALS_IN = { travel: 200, duration: 1.8 }
-// The accent line, which ends up fixed along the bottom of the screen,
-// starts as the upright line between P and D, drawn in from the top and
-// bottom edges of the screen. Over `turn` seconds it swings flat and drops
-// below the name, always reaching edge to edge; it lands with the name on
-// the hero's bottom edge, then rides the curtain down to the screen's.
-const RULE = { turn: 1.4 }
 // Seconds the name takes to grow into its place in the hero. The bar's
 // entrance keeps pace with it.
 const LANDING = 2.3
-// The blank screen, split at the flat line, opens like a curtain with the
-// landing, at its pace: the part above rises off the top, while the part
-// below carries the line, with the name standing on it, down to the hero's
-// bottom edge. Once the name has landed, that part drops away, taking the
-// line down to the bottom of the screen.
+// The blank screen, split just under the name (where the hero's bottom edge
+// is in the scaled-down hero), opens like a curtain with the landing, at its
+// pace: the part above rises off the top, while the part below, with the
+// name standing on it, rides down to the hero's bottom edge. Once the name
+// has landed, that part drops away off the bottom of the screen.
 const CURTAIN_DROP = { duration: 0.9, ease: 'power3.inOut' }
 // P and D parting to their places in the name. `unfold`: how far through the
 // parting the last letters on each side appear (letters under an initial
@@ -105,19 +99,19 @@ export default function Hero({ menuOpen, onOpenMenu }) {
     share: 0,
   })
 
-  // The wordmark's ink runs edge to edge of its box, gutter to gutter.
-  const rolesList = useRef(null)
+  // The wordmark's ink is pinned to the outer ink edges of the roles row.
+  const firstRole = useRef(null)
+  const lastRole = useRef(null)
   const hero = useRef(null)
   const bar = useRef(null)
   const playIntro = useRef(null)
-  const wordmark = useFitText(name, { onFitted: playIntro })
+  const wordmark = useFitText(name, { alignStart: firstRole, alignEnd: lastRole, onFitted: playIntro })
 
   // Intro: the preloader (see PRELOAD), then the roles and the top bar fade
   // in. The clock starts once the wordmark has its font and size; until then
   // the screen stays blank. Skipped for a link to a section further down.
   const preloader = useRef(null)
   const bottom = useRef(null)
-  const rule = useRef(null)
   const introPlayed = useRef(false)
   useGSAP(
     () => {
@@ -144,12 +138,8 @@ export default function Hero({ menuOpen, onOpenMenu }) {
           return
         }
 
-        const roles = rolesList.current
-        // The bar fades in item by item, not as a whole: while an ancestor
-        // fades, browsers switch off the roles box's backdrop blur, and it
-        // would pop in at the end.
-        const barItems = [...bar.current.children].filter((item) => item !== roles)
-        gsap.set([roles, ...barItems], { autoAlpha: 0 })
+        const roles = [...firstRole.current.parentElement.children]
+        gsap.set([...roles, bar.current], { autoAlpha: 0 })
 
         // The page holds still under the preloader, at the top.
         window.history.scrollRestoration = 'manual'
@@ -232,67 +222,23 @@ export default function Hero({ menuOpen, onOpenMenu }) {
             y: box.top + moved.y + scale * (y - box.top),
           })
 
-          // P and D side by side with the gap between them (where the line
-          // runs) on the name's centre, so in the middle of the window.
+          // P and D side by side with the gap between them on the name's
+          // centre, so in the middle of the window.
           const gap = INITIALS_GAP * size
           const pairLeft = centre - gap / 2 - width(p)
           const shift = { [p]: pairLeft - ink[p].left, [d]: pairLeft + width(p) + gap - ink[d].left }
           gsap.set(chars, { autoAlpha: 0 })
           gsap.set([chars[p], chars[d]], { x: (i) => kerning[[p, d][i]] + shift[[p, d][i]] })
 
-          // The rule, 1px thick on screen throughout and always reaching from
-          // edge to edge of the screen: first upright through the gap between
-          // P and D, its halves growing in from the top and bottom edges; then
-          // swinging flat as it drops below the name, to where the hero's
-          // bottom edge is in the scaled-down hero, so it lands with the name.
-          // Its own place is the bottom of the screen, where it is fixed.
-          const line = rule.current
-          const halves = [...line.children]
-          const lineBox = line.getBoundingClientRect()
-          const lineMiddle = { x: lineBox.left + lineBox.width / 2, y: lineBox.top + lineBox.height / 2 }
-          const heroEdge = { x: viewport.clientWidth / 2, y: hero.current.getBoundingClientRect().bottom - 0.5 }
-          const between = preloaded(box.left + pairLeft + width(p) + gap / 2, box.top + capsMiddle)
-          const under = { x: heroEdge.x, y: preloaded(heroEdge.x, heroEdge.y).y }
-          // The rule's placement for the line through `point` at `angle`
-          // (degrees from flat), cut off at the screen's edges.
-          const across = (point, angle) => {
-            const radians = (angle * Math.PI) / 180
-            const direction = { x: Math.cos(radians), y: Math.sin(radians) }
-            let [from, to] = [-Infinity, Infinity]
-            for (const [axis, size] of [['x', viewport.clientWidth], ['y', viewport.clientHeight]]) {
-              if (Math.abs(direction[axis]) < 1e-6) continue
-              const [near, far] = [-point[axis] / direction[axis], (size - point[axis]) / direction[axis]].sort((a, b) => a - b)
-              from = Math.max(from, near)
-              to = Math.min(to, far)
-            }
-            // Slanted, its square ends poke past the side edges by up to half its
-            // thickness, which would widen the page: pull those ends in.
-            const poke = Math.abs(direction.x) > 1e-6 ? (0.5 * Math.abs(direction.y)) / Math.abs(direction.x) : 0
-            const atSide = (along) => {
-              const x = point.x + along * direction.x
-              return x < 0.01 || x > viewport.clientWidth - 0.01
-            }
-            if (atSide(from)) from += poke
-            if (atSide(to)) to -= poke
-            const middle = (from + to) / 2
-            return {
-              x: point.x + middle * direction.x - lineMiddle.x,
-              y: point.y + middle * direction.y - lineMiddle.y,
-              rotation: angle,
-              scaleX: (to - from) / lineBox.width,
-            }
-          }
-          // The blank screen in two parts, meeting where the line lies flat
-          // (overlapping by a pixel, behind the line, so no seam shows).
+          // Where the hero's bottom edge is in the scaled-down hero: just under
+          // the name.
+          const heroBottom = hero.current.getBoundingClientRect().bottom
+          const under = preloaded(0, heroBottom).y
+          // The blank screen in two parts, meeting there (overlapping by a
+          // pixel, so no seam shows).
           const [upper, lower] = preloader.current.children
-          gsap.set(upper, { height: under.y + 0.5 })
-          gsap.set(lower, { top: under.y - 0.5 })
-
-          const turn = { progress: 0 }
-          const turnPoint = gsap.utils.interpolate(between, under)
-          // Over the blank screen while the preloader plays (it waits under it).
-          gsap.set(line, { transformOrigin: '50% 50%', ...across(between, 90), autoAlpha: 0, zIndex: 11 })
-          gsap.set(halves, { scaleX: 0, transformOrigin: (i) => (i ? '100% 50%' : '0% 50%') })
+          gsap.set(upper, { height: under + 0.5 })
+          gsap.set(lower, { top: under - 0.5 })
 
           // As P and D part, the other letters appear in place, from the
           // middle outwards, each only once neither initial is over it, so
@@ -359,7 +305,6 @@ export default function Hero({ menuOpen, onOpenMenu }) {
             markIntroDone()
             split.revert()
             gsap.set(heading, { clearProps: 'transform,transformOrigin' })
-            gsap.set([line, ...halves], { clearProps: 'transform,transformOrigin,opacity,visibility,zIndex' })
             gsap.set(bottom.current, { clearProps: 'zIndex' })
             release()
           }
@@ -369,26 +314,9 @@ export default function Hero({ menuOpen, onOpenMenu }) {
             .from(chars[p], { y: rise, duration: INITIALS_IN.duration, ease: 'power3.out' }, PRELOAD.initials)
             .from(chars[d], { y: -rise, duration: INITIALS_IN.duration, ease: 'power3.out' }, PRELOAD.initials)
             .to([chars[p], chars[d]], { autoAlpha: 1, duration: INITIALS_IN.duration * 0.75, ease: 'power1.out' }, PRELOAD.initials)
-            //    The line between them draws in from its ends along with them:
-            //    same start, fade and easing, a little quicker, so its halves
-            //    have met before it turns.
-            .to(line, { autoAlpha: 1, duration: INITIALS_IN.duration * 0.75, ease: 'power1.out' }, PRELOAD.initials)
-            .to(halves, { scaleX: 1, duration: INITIALS_IN.duration - 0.5, ease: 'power3.out' }, PRELOAD.initials)
             // 2. They part to their places in the name, and the rest of it
             //    unfolds between and beside them.
             .to([chars[p], chars[d]], { x: (i) => kerning[[p, d][i]], duration: PARTING.duration, ease: PARTING.ease }, PRELOAD.name)
-            //    The line swings flat behind them as it drops below the name,
-            //    reaching edge to edge all the way.
-            .to(
-              turn,
-              {
-                progress: 1,
-                duration: RULE.turn,
-                ease: 'power3.inOut',
-                onUpdate: () => gsap.set(line, across(turnPoint(turn.progress), 90 * (1 - turn.progress))),
-              },
-              PRELOAD.name,
-            )
           for (const i of rest) {
             intro.fromTo(
               chars[i],
@@ -398,24 +326,20 @@ export default function Hero({ menuOpen, onOpenMenu }) {
             )
           }
           intro
-            // 3. The name grows into place in the hero and the line moves down
-            //    with it to the hero's bottom edge; the blank screen parts at
-            //    the line in step, the top rising and the bottom riding down
-            //    under the line, then dropping away. The roles and the bar
+            // 3. The name grows into place in the hero; the blank screen parts
+            //    under it in step, the top rising and the bottom riding down
+            //    under the name, then dropping away. The roles and the bar
             //    follow.
             .to(heading, { x: 0, y: 0, scale: 1, duration: LANDING, ease: 'expo.inOut' }, PRELOAD.land)
-            .to(line, { y: heroEdge.y - lineMiddle.y, duration: LANDING, ease: 'expo.inOut' }, PRELOAD.land)
             .to(upper, { yPercent: -100, duration: LANDING, ease: 'expo.inOut' }, PRELOAD.land)
-            .to(lower, { y: heroEdge.y - under.y, duration: LANDING, ease: 'expo.inOut' }, PRELOAD.land)
+            .to(lower, { y: heroBottom - under, duration: LANDING, ease: 'expo.inOut' }, PRELOAD.land)
             // (as the landing settles, taking over from the ride down) the
-            // lower part drops away and the line rides it to the screen's
-            // bottom edge, its fixed place.
-            .to(lower, { y: viewport.clientHeight - under.y + 0.5, overwrite: 'auto', ...CURTAIN_DROP }, PRELOAD.land + LANDING * 0.76)
-            .to(line, { y: 0, overwrite: 'auto', ...CURTAIN_DROP }, PRELOAD.land + LANDING * 0.76)
+            // lower part drops away off the bottom of the screen.
+            .to(lower, { y: viewport.clientHeight - under + 0.5, overwrite: 'auto', ...CURTAIN_DROP }, PRELOAD.land + LANDING * 0.76)
             .set(preloader.current, { autoAlpha: 0, onComplete: letScroll }, PRELOAD.land + LANDING * 0.76 + CURTAIN_DROP.duration)
-            .to(roles, { autoAlpha: 1, duration: 1 }, PRELOAD.land + LANDING * 0.7)
-            .from(roles, { y: 16, duration: 1 }, PRELOAD.land + LANDING * 0.7)
-            .to(barItems, { autoAlpha: 1, duration: 1 }, PRELOAD.land + LANDING * 0.85)
+            .to(roles, { autoAlpha: 1, duration: 1, stagger: 0.03 }, PRELOAD.land + LANDING * 0.7)
+            .from(roles, { y: 16, duration: 1, stagger: 0.03 }, PRELOAD.land + LANDING * 0.7)
+            .to(bar.current, { autoAlpha: 1, duration: 1 }, PRELOAD.land + LANDING * 0.85)
         })
 
         if (wordmark.current.hasAttribute('data-fitted')) start()
@@ -464,11 +388,6 @@ export default function Hero({ menuOpen, onOpenMenu }) {
           {/* The dot blinks while the showreel plays. */}
           <RecDot still={Boolean(reel.src) && !playback.playing} />
         </div>
-        <ul ref={rolesList} className={`mono-label ${styles.roles}`} aria-label="Roles">
-          {roles.map((role) => (
-            <li key={role}>{role}</li>
-          ))}
-        </ul>
         <div className={styles.menu}>
           <MenuButton expanded={menuOpen} onClick={onOpenMenu} />
         </div>
@@ -481,14 +400,14 @@ export default function Hero({ menuOpen, onOpenMenu }) {
         <div />
       </div>
 
-      {/* The accent line, fixed along the bottom of the screen; the preloader
-          draws it. Before the wordmark, so it passes behind the letters. */}
-      <span ref={rule} className={styles.rule} aria-hidden="true">
-        <span />
-        <span />
-      </span>
-
       <div className={styles.bottom} ref={bottom}>
+        <ul className={`mono-ui ${styles.roles}`} aria-label="Roles">
+          {roles.map((role, i) => (
+            <li key={role} ref={i === 0 ? firstRole : i === roles.length - 1 ? lastRole : undefined}>
+              {role}
+            </li>
+          ))}
+        </ul>
         <div className={styles.wordmarkWrap}>
           <h1 ref={wordmark} className={styles.wordmark}>
             {name}
