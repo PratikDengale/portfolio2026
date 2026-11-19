@@ -39,6 +39,16 @@ function inkOf(char, style) {
   return { left: -m.actualBoundingBoxLeft, right: m.actualBoundingBoxRight, ascent: m.actualBoundingBoxAscent }
 }
 
+// A CSS colour as `rgb(…)`, which GSAP can tween (the site's red is oklch).
+function rgbOf(color) {
+  canvas ??= document.createElement('canvas').getContext('2d')
+  canvas.clearRect(0, 0, 1, 1)
+  canvas.fillStyle = color
+  canvas.fillRect(0, 0, 1, 1)
+  const [r, g, b] = canvas.getImageData(0, 0, 1, 1).data
+  return `rgb(${r}, ${g}, ${b})`
+}
+
 // Viewport y of an element's (single-line) baseline: an empty inline-block
 // sits on it.
 function baselineOf(element) {
@@ -58,12 +68,14 @@ const PRELOAD_DELAY = 1
 // slowly, so each begins just before the step before it visibly settles:
 // one runs on into the next without a pause.
 const PRELOAD = {
-  initials: 0.1, // P rises and D drops into the middle
+  initials: 0.1, // P and D come into focus in the middle, in red
   name: 1.25, // they part to their places as the rest of the name unfolds
   land: 2.35, // the blank screen parts under the name like a curtain as it grows into the hero
 }
-// P and D's way in: how far each travels (px on screen) and for how long.
-const INITIALS_IN = { travel: 200, duration: 1.8 }
+// P and D's way in: they fade in where they stand, from clear and blurred
+// (`blur`, px on screen), over `duration` seconds, starting in the site's red,
+// which turns to the name's own colour from the start, over `tint` seconds.
+const INITIALS_IN = { blur: 12, duration: 1.2, tint: 0.8 }
 // Seconds the name takes to grow into its place in the hero. The bar's
 // entrance keeps pace with it.
 const LANDING = 2.3
@@ -79,8 +91,6 @@ const CURTAIN_DROP = { duration: 0.9, ease: 'power3.inOut' }
 const PARTING = { duration: 1.6, ease: 'expo.inOut', unfold: 0.85 }
 // The name's size in the middle of the screen, as a share of the window's width.
 const PRELOAD_SIZE = { share: 0.045, min: 28, max: 72 }
-// Space between P and D while they're side by side, in em.
-const INITIALS_GAP = 0.36
 
 // Parallax: how far the showreel lags behind the page as it scrolls away
 // (0.5: it moves at half the page's speed).
@@ -222,9 +232,11 @@ export default function Hero({ menuOpen, onOpenMenu }) {
             y: box.top + moved.y + scale * (y - box.top),
           })
 
-          // P and D side by side with the gap between them on the name's
-          // centre, so in the middle of the window.
-          const gap = INITIALS_GAP * size
+          // P and D side by side, as close as the font sets them typed
+          // together ("PD", with the name's tracking), the pair's middle on
+          // the name's centre, so in the middle of the window.
+          const together = inkOf(chars[p].textContent + chars[d].textContent, style)
+          const gap = together.right - together.left - width(p) - width(d) + (parseFloat(style.letterSpacing) || 0)
           const pairLeft = centre - gap / 2 - width(p)
           const shift = { [p]: pairLeft - ink[p].left, [d]: pairLeft + width(p) + gap - ink[d].left }
           gsap.set(chars, { autoAlpha: 0 })
@@ -295,8 +307,9 @@ export default function Hero({ menuOpen, onOpenMenu }) {
           }
           // Over the blank screen while it lasts.
           gsap.set(bottom.current, { zIndex: 11 })
-          // The travel on screen, whatever the scale.
-          const rise = INITIALS_IN.travel / scale
+          const pair = [chars[p], chars[d]]
+          const red = rgbOf(getComputedStyle(document.documentElement).getPropertyValue('--rec'))
+          const own = rgbOf(style.color)
 
           // Only a preloader that ran to the end counts as played; one cut off
           // (by a remount, or Reduce Motion switched on and off) plays again.
@@ -310,13 +323,19 @@ export default function Hero({ menuOpen, onOpenMenu }) {
           }
           intro = gsap
             .timeline({ delay: PRELOAD_DELAY, defaults: { ease: EASE }, onComplete: finish })
-            // 1. P rises and D drops into the middle.
-            .from(chars[p], { y: rise, duration: INITIALS_IN.duration, ease: 'power3.out' }, PRELOAD.initials)
-            .from(chars[d], { y: -rise, duration: INITIALS_IN.duration, ease: 'power3.out' }, PRELOAD.initials)
-            .to([chars[p], chars[d]], { autoAlpha: 1, duration: INITIALS_IN.duration * 0.75, ease: 'power1.out' }, PRELOAD.initials)
+            // 1. P and D come into focus in the middle, in red (the blur is
+            //    divided by the scale to come out the same on screen)...
+            .fromTo(
+              pair,
+              { autoAlpha: 0, filter: `blur(${INITIALS_IN.blur / scale}px)` },
+              { autoAlpha: 1, filter: 'blur(0px)', duration: INITIALS_IN.duration, ease: 'power2.out', clearProps: 'filter' },
+              PRELOAD.initials,
+            )
+            //    ...which turns to the name's own colour.
+            .fromTo(pair, { color: red }, { color: own, duration: INITIALS_IN.tint, ease: 'power1.inOut' }, PRELOAD.initials)
             // 2. They part to their places in the name, and the rest of it
             //    unfolds between and beside them.
-            .to([chars[p], chars[d]], { x: (i) => kerning[[p, d][i]], duration: PARTING.duration, ease: PARTING.ease }, PRELOAD.name)
+            .to(pair, { x: (i) => kerning[[p, d][i]], duration: PARTING.duration, ease: PARTING.ease }, PRELOAD.name)
           for (const i of rest) {
             intro.fromTo(
               chars[i],
