@@ -67,13 +67,13 @@ function baselineOf(element) {
 // one runs on into the next without a pause.
 const PRELOAD = {
   initials: 0, // P and D come into focus in the middle, in red
-  name: 1.25, // they part to their places as the rest of the name unfolds
-  land: 2.35, // the blank screen parts under the name like a curtain as it grows into the hero
+  name: 0.75, // while still coming into focus, they part to their places as the rest of the name unfolds
+  land: 1.85, // the blank screen parts under the name like a curtain as it grows into the hero
 }
 // P and D's way in: they fade in where they stand, from clear and blurred
 // (`blur`, px on screen), over `duration` seconds, starting in the site's red,
 // which turns to the name's own colour from the start, over `tint` seconds.
-const INITIALS_IN = { blur: 12, duration: 1.2, tint: 0.8 }
+const INITIALS_IN = { blur: 12, duration: 1.2, tint: 1.25 }
 // Seconds the name takes to grow into its place in the hero. The bar's
 // entrance keeps pace with it.
 const LANDING = 2.3
@@ -87,6 +87,9 @@ const CURTAIN_DROP = { duration: 0.9, ease: 'power3.inOut' }
 // parting the last letters on each side appear (letters under an initial
 // wait for it to move off them).
 const PARTING = { duration: 1.6, ease: 'expo.inOut', unfold: 0.85 }
+// Seconds each of the rest of the name's letters takes to fade in from
+// blurred, from when the parting reaches it.
+const REST_IN = { duration: 1.1 }
 // The name's size in the middle of the screen, as a share of the window's width.
 const PRELOAD_SIZE = { share: 0.045, min: 28, max: 72 }
 
@@ -338,7 +341,7 @@ export default function Hero({ menuOpen, onOpenMenu }) {
             intro.fromTo(
               chars[i],
               { autoAlpha: 0, filter: `blur(${8 / scale}px)` },
-              { autoAlpha: 1, filter: 'blur(0px)', duration: 0.6, ease: 'power2.out', clearProps: 'filter' },
+              { autoAlpha: 1, filter: 'blur(0px)', duration: REST_IN.duration, ease: 'power2.out', clearProps: 'filter' },
               PRELOAD.name + Math.max(0, timeAt(revealReach(i)) - 0.08),
             )
           }
