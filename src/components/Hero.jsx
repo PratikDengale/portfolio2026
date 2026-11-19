@@ -62,13 +62,11 @@ function baselineOf(element) {
 
 // The preloader: the wordmark plays it itself, so the letters that form in
 // the middle of the blank screen are the very ones that end up in the hero.
-// Seconds the blank screen holds before the preloader begins.
-const PRELOAD_DELAY = 1
 // Times in seconds from the start. The parting and landing ease in and out
 // slowly, so each begins just before the step before it visibly settles:
 // one runs on into the next without a pause.
 const PRELOAD = {
-  initials: 0.1, // P and D come into focus in the middle, in red
+  initials: 0, // P and D come into focus in the middle, in red
   name: 1.25, // they part to their places as the rest of the name unfolds
   land: 2.35, // the blank screen parts under the name like a curtain as it grows into the hero
 }
@@ -322,7 +320,7 @@ export default function Hero({ menuOpen, onOpenMenu }) {
             release()
           }
           intro = gsap
-            .timeline({ delay: PRELOAD_DELAY, defaults: { ease: EASE }, onComplete: finish })
+            .timeline({ defaults: { ease: EASE }, onComplete: finish })
             // 1. P and D come into focus in the middle, in red (the blur is
             //    divided by the scale to come out the same on screen)...
             .fromTo(
